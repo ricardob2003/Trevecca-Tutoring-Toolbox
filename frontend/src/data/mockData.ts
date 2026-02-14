@@ -1,13 +1,14 @@
- import type {
-   User,
-   Tutor,
-   Course,
-   TutoringRequest,
-   TutoringSession,
-   SessionMetrics,
-   TutorMetrics,
-   CourseMetrics,
- } from "@/types";
+import type {
+  User,
+  Tutor,
+  Course,
+  TutoringRequest,
+  TutoringSession,
+  SessionRequest,
+  SessionMetrics,
+  TutorMetrics,
+  CourseMetrics,
+} from "@/types";
  
  // Mock Users
  export const mockUsers: User[] = [
@@ -195,9 +196,44 @@
      status: "scheduled",
      attended: null,
      notes: null,
-   },
+  },
  ];
- 
+
+ // Session requests (student → tutor meeting requests); new ones pushed at runtime from MyTutors
+ let _nextSessionRequestId = 1;
+ export const mockSessionRequests: SessionRequest[] = [];
+
+ export function addSessionRequest(
+   tutor_id: number,
+   user_id: number,
+   course_id: number,
+   requested_start_time: string,
+   requested_end_time: string,
+   notes: string | null
+ ): SessionRequest {
+   const req: SessionRequest = {
+     id: _nextSessionRequestId++,
+     tutor_id,
+     user_id,
+     course_id,
+     requested_start_time,
+     requested_end_time,
+     notes,
+     status: "pending",
+     created_at: new Date().toISOString(),
+   };
+   mockSessionRequests.push(req);
+   return req;
+ }
+
+ export function updateSessionRequestStatus(
+   id: number,
+   status: "accepted" | "declined"
+ ): void {
+   const r = mockSessionRequests.find((x) => x.id === id);
+   if (r) r.status = status;
+ }
+
  // Mock Session Metrics
  export const mockSessionMetrics: SessionMetrics[] = [
    {

@@ -45,6 +45,10 @@ export function Sidebar() {
     path: "/student/home",
     icon: <Home size={20} />
   }, {
+    label: "My Tutors",
+    path: "/student/mytutors",
+    icon: <Users size={20} />
+  }, {
     label: "Request Tutor",
     path: "/student/request",
     icon: <FileText size={20} />
