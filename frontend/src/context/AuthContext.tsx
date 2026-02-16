@@ -89,22 +89,15 @@
      dispatch({ type: "LOGIN_SUCCESS", payload: authUser });
    };
  
-   const loginWithMicrosoft = async () => {
-     // TODO: Implement Microsoft SSO integration
-     dispatch({ type: "LOGIN_START" });
-     await new Promise((resolve) => setTimeout(resolve, 500));
-     
-     // For demo, log in as admin
-     const adminUser = mockUsers.find((u) => u.role === "admin")!;
-     const authUser: AuthUser = {
-       user: adminUser,
-       tutor: null,
-       isAdmin: true,
-       isTutor: false,
-     };
-     
-     dispatch({ type: "LOGIN_SUCCESS", payload: authUser });
-   };
+  const loginWithMicrosoft = async () => {
+    // Placeholder for future Microsoft Entra ID integration.
+    dispatch({ type: "LOGIN_START" });
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    dispatch({
+      type: "LOGIN_ERROR",
+      payload: "Microsoft sign-in is coming soon. Please use email/password for now.",
+    });
+  };
  
    const logout = () => {
      dispatch({ type: "LOGOUT" });

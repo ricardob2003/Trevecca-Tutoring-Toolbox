@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import { LayoutDashboard, FileText, Users, BookOpen, GraduationCap, Home, Search, Calendar, LogOut, ChevronLeft, Menu } from "lucide-react";
+import { LayoutDashboard, FileText, Users, BookOpen, GraduationCap, Home, Search, Calendar, LogOut, ChevronLeft, Menu, BarChart3 } from "lucide-react";
 import { useState } from "react";
 interface NavItem {
   label: string;
@@ -39,6 +39,10 @@ export function Sidebar() {
     label: "Students",
     path: "/admin/students",
     icon: <GraduationCap size={20} />
+  }, {
+    label: "Analytics",
+    path: "/admin/analytics",
+    icon: <BarChart3 size={20} />
   }];
   const studentLinks: NavItem[] = [{
     label: "Home",
@@ -73,31 +77,31 @@ export function Sidebar() {
   const navLinks = getNavLinks();
   const isActive = (path: string) => location.pathname === path;
   return <aside className={`
-         fixed left-0 top-0 h-full bg-sidebar z-40
+         fixed left-0 top-0 h-full bg-sidebar text-sidebar-foreground z-40
          flex flex-col transition-all duration-300
          ${collapsed ? "w-16" : "w-64"}
        `}>
        {/* Header */}
-       <div className="flex items-center justify-between h-16 px-4 border-b border-sidebar-border bg-[#532c6d] border-none">
+       <div className="flex items-center justify-between h-16 px-4 border-b border-sidebar-border">
          {!collapsed && <div className="flex items-center gap-2">
              <div className="w-8 h-8 bg-sidebar-primary rounded-md flex items-center justify-center">
                <span className="text-sidebar-primary-foreground font-bold text-sm">T</span>
              </div>
              <span className="font-semibold text-sidebar-foreground">TNU Tutoring</span>
            </div>}
-         <button onClick={() => setCollapsed(!collapsed)} className="p-2 rounded-md hover:bg-sidebar-accent text-sidebar-foreground transition-colors" aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}>
+         <button onClick={() => setCollapsed(!collapsed)} className="p-2 rounded-md hover:bg-sidebar-accent/20 text-sidebar-foreground transition-colors" aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}>
            {collapsed ? <Menu size={20} /> : <ChevronLeft size={20} />}
          </button>
        </div>
  
        {/* Navigation */}
-       <nav className="flex-1 py-4 px-2 overflow-y-auto bg-[#532c6d]">
+       <nav className="flex-1 py-4 px-2 overflow-y-auto">
          <ul className="space-y-1">
            {navLinks.map(link => <li key={link.path}>
                <Link to={link.path} className={`
                    flex items-center gap-3 px-3 py-2.5 rounded-md
                    transition-colors text-sm font-medium
-                   ${isActive(link.path) ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"}
+                   ${isActive(link.path) ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm" : "text-sidebar-foreground/95 hover:bg-sidebar-accent/20 hover:text-sidebar-foreground"}
                  `} title={collapsed ? link.label : undefined}>
                  {link.icon}
                  {!collapsed && <span>{link.label}</span>}
@@ -114,7 +118,7 @@ export function Sidebar() {
        </nav>
  
        {/* User Info & Logout */}
-       <div className="p-4 border-t border-sidebar-border bg-[#532c6d] border-0">
+       <div className="p-4 border-t border-sidebar-border">
          {!collapsed && <div className="mb-3">
              <p className="text-sm font-medium text-sidebar-foreground truncate">
                {currentUser.user.first_name} {currentUser.user.last_name}
@@ -125,7 +129,7 @@ export function Sidebar() {
            </div>}
          <button onClick={logout} className={`
              flex items-center gap-3 w-full px-3 py-2 rounded-md
-             text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground
+             text-sidebar-foreground/95 hover:bg-sidebar-accent/20 hover:text-sidebar-foreground
              transition-colors text-sm font-medium
            `} title={collapsed ? "Logout" : undefined}>
            <LogOut size={20} />

@@ -1,0 +1,91 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  admin
+  student
+}
+
+model User {
+  id                Int               @id @default(autoincrement())
+  treveccaId        String            @unique @map("trevecca_id")
+  email             String            @unique
+  firstName         String            @map("first_name")
+  lastName          String            @map("last_name")
+  year              Int?
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+  temporaryPassword String?           @map("temporary_password")
+  role              UserRole          @default(student)
+  microsoftObjectId String?           @unique @map("microsoft_object_id")
+  tutor             Tutor?
+  requests          TutoringRequest[]
+  sessions          TutoringSession[] @relation("StudentSessions")
+
+  @@map("user")
+}
+
+model Tutor {
+  userId            Int               @id @map("user_id")
+  major             String?
+  subjects          String?
+  hourlyLimit       Int?              @map("hourly_limit")
+  active            Boolean           @default(true)
+  user              User              @relation(fields: [userId], references: [id])
+  sessions          TutoringSession[] @relation("TutorSessions")
+  requestedRequests TutoringRequest[] @relation("RequestedTutor")
+
+  @@map("tutor")
+}
+
+model Course {
+  id       Int               @id @default(autoincrement())
+  code     String            @unique
+  title    String
+  department String?
+  requests TutoringRequest[]
+  sessions TutoringSession[]
+
+  @@map("course")
+}
+
+model TutoringRequest {
+  id               Int             @id @default(autoincrement())
+  userId           Int             @map("user_id")
+  requestedTutorId Int?            @map("requested_tutor_id")
+  courseId         Int             @map("course_id")
+  description      String?
+  status           String?
+  createdAt        DateTime        @default(now()) @map("created_at")
+  user             User            @relation(fields: [userId], references: [id])
+  requestedTutor   Tutor?          @relation("RequestedTutor", fields: [requestedTutorId], references: [userId])
+  course           Course          @relation(fields: [courseId], references: [id])
+  sessions         TutoringSession[]
+
+  @@map("tutoring_request")
+}
+
+model TutoringSession {
+  id        Int             @id @default(autoincrement())
+  tutorId   Int             @map("tutor_id")
+  userId    Int             @map("user_id")
+  requestId Int             @map("request_id")
+  courseId  Int             @map("course_id")
+  startTime DateTime?       @map("start_time")
+  endTime   DateTime?       @map("end_time")
+  status    String?
+  attended  Boolean?
+  notes     String?
+  tutor     Tutor           @relation("TutorSessions", fields: [tutorId], references: [userId])
+  user      User            @relation("StudentSessions", fields: [userId], references: [id])
+  request   TutoringRequest @relation(fields: [requestId], references: [id])
+  course    Course          @relation(fields: [courseId], references: [id])
+
+  @@map("tutoring_session")
+}
