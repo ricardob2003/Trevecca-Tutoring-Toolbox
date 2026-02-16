@@ -32,111 +32,174 @@ export default function Login() {
       replace: true
     });
   }
-  return <div className="min-h-screen bg-background flex">
+  return <div className="h-screen overflow-hidden bg-background flex">
        {/* Left side - Branding */}
-       <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 bg-[#532c6d]">
+       <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 bg-[#FFFFFF]"> { /* #532c6d */}
          <div>
            <div className="flex items-center gap-3">
-             <img src="images/TrevLogo.webp" alt="Trevecca Transparent Logo"></img> 
+             <img src="src\Images\TrevLogo.webp" alt="Trevecca Transparent Logo" 
+             style={{width: "350px", height: "90px", position: "absolute", top: "110px", left: "175px", zIndex: 5}}></img> 
             {/* <span className="text-2xl font-bold text-primary-foreground">
                Trevecca Nazarene University
              </span> */}
            </div>
          </div>
- 
          <div>
-           <h1 className="text-4xl font-bold text-primary-foreground mb-4">
-             Tutoring Center
-           </h1>
-           <p className="text-lg text-primary-foreground/80 max-w-md">
-             Connect with peer tutors, schedule sessions, and get the academic support 
-             you need to succeed at Trevecca.
-           </p>
+              <img src="src\Images\Login_Corner.png" alt="Trevecca Top left Corner Design"
+              style= {{width: "200px", height: "200px", position: "absolute", top: "0px" , left: "0px"}}>
+              </img>
          </div>
- 
-         <div className="text-primary-foreground/60 text-sm">
-           © 2024 Trevecca Nazarene University. All rights reserved.
+         <div>
+              <img src="src\Images\Login_Corner_Right.png" alt="Trevecca Bottom Right Corner Design"
+                style= {{width: "230px", height: "200px", position: "absolute", bottom: "0px" , right: "0px"}}>
+              </img>
+              {/* White rectangle to cover stray line below shield in corner image */}
+              <div
+                className="bg-white"
+                style={{
+                  position: "absolute",
+                  top: "190px",
+                  left: "75px",
+                  width: "100px",
+                  height: "14px",
+                  zIndex: 10,
+                }}
+                aria-hidden
+              />
+         </div>
+         <div>
+           <img src="src\Images\Trevecca-Login-Picture.png" alt="Trevecca Login Picture"
+           style={{width: "480px", height: "420px", position: "absolute", top: "200px", left: "85px"}}>
+           </img>
          </div>
        </div>
  
-       {/* Right side - Login Form */}
-       <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
-         <div className="w-full max-w-md">
+       {/* Right side - Login Form (full white; card narrow to leave room for bottom-right decorations) */}
+       <div className="w-full lg:w-1/2 flex items-start justify-start p-6 bg-white h-full overflow-hidden">
+         <div className="w-full max-w-[360px] mt-10 lg:mt-14 ml-2 lg:ml-4">
            {/* Mobile branding */}
-           <div className="lg:hidden mb-8 text-center">
+           <div className="lg:hidden mb-4 text-center">
              <div className="w-16 h-16 bg-primary rounded-xl mx-auto mb-4 flex items-center justify-center">
                <span className="text-primary-foreground font-bold text-2xl">T</span>
              </div>
              <h1 className="text-2xl font-bold text-foreground">TNU Tutoring Center</h1>
            </div>
- 
-           <div className="card-base p-8">
-             <div className="mb-8">
-               <h2 className="text-2xl font-semibold text-foreground mb-2">Welcome back</h2>
-               <p className="text-muted-foreground">
-                 Sign in to access the tutoring platform
+
+           <div className="bg-white rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.08)] p-5 border border-[#EEEEEE]">
+             {/* Header */}
+             <div className="mb-4">
+               <h2 className="text-xl font-bold text-foreground pb-1.5 border-b-2 border-foreground/90 w-fit">
+                 Tutoring Toolbox
+               </h2>
+               <p className="text-muted-foreground mt-1.5 text-sm">
+                 Log in to schedule or manage tutoring sessions
                </p>
              </div>
- 
-             {/* Microsoft SSO Button */}
-             <button type="button" onClick={handleMicrosoftLogin} disabled={isLoading} className="w-full flex items-center justify-center gap-3 px-4 py-3 
-                        border border-border rounded-md bg-card hover:bg-muted 
-                        transition-colors mb-6">
-               <svg className="w-5 h-5" viewBox="0 0 21 21" fill="none">
-                 <rect x="1" y="1" width="9" height="9" fill="#F25022" />
-                 <rect x="11" y="1" width="9" height="9" fill="#7FBA00" />
-                 <rect x="1" y="11" width="9" height="9" fill="#00A4EF" />
-                 <rect x="11" y="11" width="9" height="9" fill="#FFB900" />
-               </svg>
-               <span className="font-medium text-foreground">Sign in with Microsoft</span>
-             </button>
- 
-             <div className="relative mb-6">
-               <div className="absolute inset-0 flex items-center">
-                 <div className="w-full border-t border-border"></div>
-               </div>
-               <div className="relative flex justify-center text-sm">
-                 <span className="px-2 bg-card text-muted-foreground">or continue with email</span>
-               </div>
-             </div>
- 
+
              {/* Email/Password Form */}
-             <form onSubmit={handleSubmit} className="space-y-4">
-               {error && <div className="p-3 rounded-md bg-destructive/10 border border-destructive/20">
+             <form onSubmit={handleSubmit} className="space-y-3">
+               {error && (
+                 <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
                    <p className="text-sm text-destructive">{error}</p>
-                 </div>}
- 
+                 </div>
+               )}
+
                <div>
-                 <label htmlFor="email" className="block text-sm font-medium text-foreground mb-1.5">
+                 <label htmlFor="email" className="block text-sm font-medium text-foreground mb-1">
                    Email
                  </label>
-                 <input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="your.email@trevecca.edu" className="input-field" required />
+                 <input
+                   id="email"
+                   type="email"
+                   value={email}
+                   onChange={e => setEmail(e.target.value)}
+                   placeholder="your.email@trevecca.edu"
+                   className="w-full px-3 py-2 rounded-lg bg-[#F0F0F0] border-0 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#C4A7DC]/50 text-sm"
+                   required
+                 />
                </div>
- 
+
                <div>
-                 <label htmlFor="password" className="block text-sm font-medium text-foreground mb-1.5">
+                 <label htmlFor="password" className="block text-sm font-medium text-foreground mb-1">
                    Password
                  </label>
-                 <div className="relative">
-                   <input id="password" type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter your password" className="input-field pr-10" required />
-                   <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                 <div className="relative flex items-center">
+                   <input
+                     id="password"
+                     type={showPassword ? "text" : "password"}
+                     value={password}
+                     onChange={e => setPassword(e.target.value)}
+                     placeholder="Enter your password"
+                     className="w-full px-3 py-2 pr-20 rounded-lg bg-[#F0F0F0] border-0 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#C4A7DC]/50 text-sm"
+                     required
+                   />
+                   <button
+                     type="button"
+                     onClick={() => setShowPassword(!showPassword)}
+                     className="absolute right-3 flex items-center gap-1.5 text-muted-foreground hover:text-foreground text-sm"
+                   >
                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                     <span>{showPassword ? "Hide" : "Show"}</span>
                    </button>
                  </div>
+                 <a href="#" className="block text-right text-xs text-muted-foreground underline hover:text-foreground mt-1">
+                   Forgot Password?
+                 </a>
                </div>
- 
-               <button type="submit" disabled={isLoading} className="btn-primary w-full flex items-center justify-center gap-2">
-                 {isLoading ? <>
-                     <Loader2 size={18} className="animate-spin" />
-                     Signing in...
-                   </> : "Sign in"}
-               </button>
+
+               <div className="pt-1 pb-3">
+                 <button
+                   type="submit"
+                   disabled={isLoading}
+                   className="w-full py-2 rounded-lg font-bold text-foreground bg-[#E6D3F2] border border-[#C4A7DC] hover:bg-[#DDC6EB] transition-colors flex items-center justify-center gap-2 text-sm"
+                 >
+                   {isLoading ? (
+                     <>
+                       <Loader2 size={18} className="animate-spin" />
+                       Signing in...
+                     </>
+                   ) : (
+                     "Sign In"
+                   )}
+                 </button>
+               </div>
              </form>
- 
-             {/* Demo credentials */}
-             <div className="mt-6 p-4 rounded-md bg-muted">
-               <p className="text-xs font-medium text-muted-foreground mb-2">Demo accounts:</p>
-               <div className="space-y-1 text-xs text-muted-foreground">
+
+             {/* Separator */}
+             <div className="border-t border-[#E0E0E0] my-3" />
+
+             {/* SSO */}
+             <div className="flex justify-center">
+               <button
+                 type="button"
+                 onClick={handleMicrosoftLogin}
+                 disabled={isLoading}
+                 className="flex items-center gap-2 px-3 py-2 rounded-lg border border-[#333] bg-white text-foreground font-medium hover:bg-[#F5F5F5] transition-colors text-sm"
+               >
+                 <svg className="w-5 h-5 shrink-0" viewBox="0 0 25 25" fill="none" stroke="currentColor" strokeWidth="0">
+                   <rect x="3" y="3" width="9" height="9" fill="#F25022" />
+                   <rect x="14" y="3" width="9" height="9" fill="#7FBA00" />
+                   <rect x="3" y="14" width="9" height="9" fill="#00A4EF"/>
+                   <rect x="14" y="14" width="9" height="9" fill="#FFB900"/>
+                 </svg>
+                 <span>
+                   Sign In With Microsoft
+                 </span>
+               </button>
+             </div>
+
+             {/* Sign up */}
+             <p className="text-center text-muted-foreground text-xs mt-3">
+               Don&apos;t have an account?{" "}
+               <a href="#" className="font-bold underline hover:text-foreground">
+                 Sign up
+               </a>
+             </p>
+
+             {/* Demo credentials - subtle */}
+             <div className="mt-3 pt-3 border-t border-[#EEEEEE]">
+               <p className="text-xs font-medium text-muted-foreground mb-1">Demo accounts:</p>
+               <div className="space-y-0.5 text-xs text-muted-foreground">
                  <p><strong>Admin:</strong> admin@trevecca.edu</p>
                  <p><strong>Student/Tutor:</strong> jsmith@trevecca.edu</p>
                  <p><strong>Student:</strong> michael.brown@trevecca.edu</p>

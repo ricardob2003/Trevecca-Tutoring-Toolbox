@@ -18,7 +18,7 @@
    return (
      <div className="min-h-screen bg-background">
        <Sidebar />
-       <div className="ml-64 transition-all duration-300">
+       <div className="ml-52">
          <Topbar />
          <main className="p-6">
            {children}
