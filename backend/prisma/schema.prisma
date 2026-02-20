@@ -12,18 +12,32 @@ enum UserRole {
   student
 }
 
+enum RequestStatus {
+  pending
+  pending_tutor
+  approved
+  denied
+}
+
+enum SessionStatus {
+  scheduled
+  completed
+  cancelled
+}
+
 model User {
-  id                Int               @id @default(autoincrement())
-  treveccaId        String            @unique @map("trevecca_id")
+  treveccaId        Int               @id @map("trevecca_id")
   email             String            @unique
   firstName         String            @map("first_name")
   lastName          String            @map("last_name")
-  year              Int?
-  createdAt         DateTime          @default(now()) @map("created_at")
-  updatedAt         DateTime          @updatedAt @map("updated_at")
+  passwordHash      String?           @map("password_hash")
   temporaryPassword String?           @map("temporary_password")
+  major             String?
+  year              Int?
   role              UserRole          @default(student)
   microsoftObjectId String?           @unique @map("microsoft_object_id")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
   tutor             Tutor?
   requests          TutoringRequest[]
   sessions          TutoringSession[] @relation("StudentSessions")
@@ -33,11 +47,10 @@ model User {
 
 model Tutor {
   userId            Int               @id @map("user_id")
-  major             String?
-  subjects          String?
-  hourlyLimit       Int?              @map("hourly_limit")
+  subjects          String[]
+  hourlyLimit       Int               @default(10) @map("hourly_limit")
   active            Boolean           @default(true)
-  user              User              @relation(fields: [userId], references: [id])
+  user              User              @relation(fields: [userId], references: [treveccaId], onDelete: Cascade)
   sessions          TutoringSession[] @relation("TutorSessions")
   requestedRequests TutoringRequest[] @relation("RequestedTutor")
 
@@ -61,13 +74,15 @@ model TutoringRequest {
   requestedTutorId Int?            @map("requested_tutor_id")
   courseId         Int             @map("course_id")
   description      String?
-  status           String?
+  status           RequestStatus   @default(pending)
   createdAt        DateTime        @default(now()) @map("created_at")
-  user             User            @relation(fields: [userId], references: [id])
+  user             User            @relation(fields: [userId], references: [treveccaId])
   requestedTutor   Tutor?          @relation("RequestedTutor", fields: [requestedTutorId], references: [userId])
   course           Course          @relation(fields: [courseId], references: [id])
   sessions         TutoringSession[]
 
+  @@index([status])
+  @@index([userId])
   @@map("tutoring_request")
 }
 
@@ -79,13 +94,16 @@ model TutoringSession {
   courseId  Int             @map("course_id")
   startTime DateTime?       @map("start_time")
   endTime   DateTime?       @map("end_time")
-  status    String?
+  status    SessionStatus?
   attended  Boolean?
   notes     String?
   tutor     Tutor           @relation("TutorSessions", fields: [tutorId], references: [userId])
-  user      User            @relation("StudentSessions", fields: [userId], references: [id])
+  user      User            @relation("StudentSessions", fields: [userId], references: [treveccaId])
   request   TutoringRequest @relation(fields: [requestId], references: [id])
   course    Course          @relation(fields: [courseId], references: [id])
 
+  @@index([tutorId])
+  @@index([userId])
+  @@index([status])
   @@map("tutoring_session")
 }

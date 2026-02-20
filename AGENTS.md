@@ -52,6 +52,19 @@ The goal of this file is to keep output consistent, safe, and mergeable.
 - Update docs when behavior/config changes.
 - If a command or edit could be destructive, ask first.
 
+## Branch Naming Convention
+
+Branches must follow this format: `<type>/<short-description>`
+
+- `feature/` — new functionality (e.g., `feature/microsoft-entra-auth`)
+- `fix/` — bug fixes (e.g., `fix/login-jwt-expiry`)
+- `chore/` — maintenance, config, deps (e.g., `chore/update-prisma-schema`)
+
+Rules:
+- Use lowercase and hyphens only (no spaces, no underscores, no slashes beyond the prefix)
+- Keep descriptions short and task-specific (2–4 words)
+- Do not use generic names like `fix/bug` or `feature/update`
+
 ## PR / Branch Workflow
 
 - `main` is production and the only merge target.
