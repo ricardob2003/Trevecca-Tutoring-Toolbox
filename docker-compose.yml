@@ -11,8 +11,15 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
+    networks:
+      - app-network
     depends_on:
       - api
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
 
   api:
     build:
@@ -22,47 +29,86 @@ services:
     working_dir: /app
     command: npm run dev
     env_file:
-      - ./backend/.env.example
+      - ./backend/.env
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@db:5432/tutoring_toolbox
-      REDIS_URL: redis://redis:6379
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
     ports:
       - "3000:3000"
     volumes:
       - ./backend:/app
       - /app/node_modules
+    networks:
+      - app-network
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_started
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
 
   db:
     image: postgres:16-alpine
     container_name: tutoring-toolbox-db
     restart: unless-stopped
     environment:
-      POSTGRES_DB: tutoring_toolbox
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "5432:5432"
+      # Only expose on localhost for DataGrip/local access
+      # Using 5433 to avoid conflict with local PostgreSQL on 5432
+      - "127.0.0.1:5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d tutoring_toolbox"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 10
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
 
   redis:
     image: redis:7-alpine
     container_name: tutoring-toolbox-redis
     restart: unless-stopped
+    command: >
+      sh -c "
+        if [ -n \"$$REDIS_PASSWORD\" ]; then
+          redis-server --requirepass \"$$REDIS_PASSWORD\"
+        else
+          redis-server
+        fi
+      "
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
     ports:
-      - "6379:6379"
+      # Only expose on localhost
+      # Using 6380 to avoid conflict with local Redis on 6379
+      - "127.0.0.1:6380:6379"
     volumes:
       - redis_data:/data
+    networks:
+      - app-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+networks:
+  app-network:
+    driver: bridge
 
 volumes:
   postgres_data:
