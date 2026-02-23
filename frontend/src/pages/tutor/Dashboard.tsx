@@ -3,19 +3,22 @@
  import { StatCard } from "@/components/ui/StatCard";
  import { StatusBadge } from "@/components/ui/StatusBadge";
  import { EmptyState } from "@/components/ui/EmptyState";
- import { Calendar, Clock, Users, BookOpen, ChevronLeft, ChevronRight } from "lucide-react";
- import {
-   mockTutoringSessions,
-   mockCourses,
-   mockUsers,
-   mockTutorMetrics,
- } from "@/data/mockData";
+ import { Calendar, Clock, Users, BookOpen, ChevronLeft, ChevronRight, Inbox, Check, X } from "lucide-react";
+import {
+  mockTutoringSessions,
+  mockCourses,
+  mockUsers,
+  mockTutorMetrics,
+  mockSessionRequests,
+  updateSessionRequestStatus,
+} from "@/data/mockData";
  
  type ViewMode = "day" | "week" | "month";
  
- export default function TutorDashboard() {
-   const { currentUser } = useAuth();
-   const [viewMode, setViewMode] = useState<ViewMode>("week");
+export default function TutorDashboard() {
+  const { currentUser } = useAuth();
+  const [viewMode, setViewMode] = useState<ViewMode>("week");
+  const [sessionRequestsVersion, setSessionRequestsVersion] = useState(0);
  
    if (!currentUser?.isTutor) {
      return (
@@ -36,10 +39,25 @@
    const completedSessions = mySessions.filter((s) => s.status === "completed");
    const upcomingSessions = mySessions.filter((s) => s.status === "scheduled");
  
-   // Get tutor metrics
-   const metrics = mockTutorMetrics.find((m) => m.tutor_id === tutorId);
- 
-   // Group sessions by date for the view
+  // Get tutor metrics
+  const metrics = mockTutorMetrics.find((m) => m.tutor_id === tutorId);
+
+  // Pending session requests (students requesting a meeting with this tutor)
+  const pendingSessionRequests = mockSessionRequests.filter(
+    (r) => r.tutor_id === tutorId && r.status === "pending"
+  );
+
+  const handleAcceptSessionRequest = (requestId: number) => {
+    updateSessionRequestStatus(requestId, "accepted");
+    setSessionRequestsVersion((v) => v + 1);
+  };
+
+  const handleDeclineSessionRequest = (requestId: number) => {
+    updateSessionRequestStatus(requestId, "declined");
+    setSessionRequestsVersion((v) => v + 1);
+  };
+
+  // Group sessions by date for the view
    const sessionsByDate = mySessions.reduce((acc, session) => {
      if (session.start_time) {
        const date = new Date(session.start_time).toLocaleDateString();
@@ -70,16 +88,81 @@
            value={`${metrics?.utilization || 0}%`}
            icon={<Users size={24} />}
          />
-         <StatCard
-           title="Upcoming"
-           value={upcomingSessions.length}
-           icon={<BookOpen size={24} />}
-         />
-       </div>
- 
-       {/* View Toggle */}
-       <div className="flex items-center justify-between mb-6">
-         <h2 className="section-header mb-0">My Sessions</h2>
+        <StatCard
+          title="Upcoming"
+          value={upcomingSessions.length}
+          icon={<BookOpen size={24} />}
+        />
+      </div>
+
+      {/* Session Requests */}
+      <div className="mb-8">
+        <h2 className="section-header mb-4 flex items-center gap-2">
+          <Inbox size={22} />
+          Session Requests
+        </h2>
+        <div className="card-base">
+          {pendingSessionRequests.length === 0 ? (
+            <p className="p-6 text-sm text-muted-foreground text-center">
+              No pending session requests. Students will appear here when they request a meeting from My Tutors.
+            </p>
+          ) : (
+            <div className="divide-y divide-border">
+              {pendingSessionRequests.map((req) => {
+                const student = mockUsers.find((u) => u.id === req.user_id);
+                const course = mockCourses.find((c) => c.id === req.course_id);
+                const start = new Date(req.requested_start_time);
+                const end = new Date(req.requested_end_time);
+                const dateStr = start.toLocaleDateString();
+                const timeStr = `${start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} – ${end.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+                return (
+                  <div
+                    key={req.id}
+                    className="flex flex-wrap items-start justify-between gap-4 p-4 hover:bg-muted/30 transition-colors"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-foreground">
+                        {student?.first_name} {student?.last_name}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {course?.code} – {course?.title}
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {dateStr} · {timeStr}
+                      </p>
+                      {req.notes && (
+                        <p className="text-sm text-muted-foreground mt-1 italic">
+                          {req.notes}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <button
+                        onClick={() => handleAcceptSessionRequest(req.id)}
+                        className="btn-primary text-sm flex items-center gap-1"
+                      >
+                        <Check size={16} />
+                        Accept
+                      </button>
+                      <button
+                        onClick={() => handleDeclineSessionRequest(req.id)}
+                        className="btn-secondary text-sm flex items-center gap-1"
+                      >
+                        <X size={16} />
+                        Decline
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* View Toggle */}
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="section-header mb-0">My Sessions</h2>
          <div className="flex items-center gap-2">
            <div className="flex rounded-md border border-border overflow-hidden">
              {(["day", "week", "month"] as ViewMode[]).map((mode) => (

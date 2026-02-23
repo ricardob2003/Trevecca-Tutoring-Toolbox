@@ -15,6 +15,7 @@
    mockCourses,
    getTutorWithUser,
  } from "@/data/mockData";
+ import treveccaLogo from "@/Images/TrevLogo.webp";
  
  export default function StudentHome() {
    const { currentUser } = useAuth();
@@ -36,6 +37,11 @@
      <div className="animate-fade-in">
        {/* Welcome Header */}
        <div className="mb-8">
+         <img
+           src={treveccaLogo}
+           alt="Trevecca logo"
+           className="h-14 w-auto mb-4 rounded-md bg-white p-1.5 shadow-sm"
+         />
          <h1 className="text-3xl font-bold text-foreground mb-2">
            Welcome back, {currentUser.user.first_name}!
          </h1>

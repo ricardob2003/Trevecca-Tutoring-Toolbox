@@ -1,6 +1,6 @@
  import React, { createContext, useContext, useReducer, ReactNode } from "react";
  import type { User, Tutor, AuthUser } from "@/types";
- import { mockUsers, mockTutors } from "@/data/mockData";
+ import { loginAPI } from "@/lib/api";
  
  interface AuthState {
    isAuthenticated: boolean;
@@ -60,53 +60,66 @@
  export function AuthProvider({ children }: { children: ReactNode }) {
    const [state, dispatch] = useReducer(authReducer, initialState);
  
-   const login = async (email: string, _password: string) => {
-     dispatch({ type: "LOGIN_START" });
- 
-     // Simulate API delay
-     await new Promise((resolve) => setTimeout(resolve, 500));
- 
-     // Mock authentication - find user by email
-     const user = mockUsers.find(
-       (u) => u.email.toLowerCase() === email.toLowerCase()
-     );
- 
-     if (!user) {
-       dispatch({ type: "LOGIN_ERROR", payload: "Invalid email or password" });
-       return;
+   const login = async (email: string, password: string) => {
+     try {
+       dispatch({ type: "LOGIN_START" });
+
+       // Call real backend API
+       const { token, user: userData } = await loginAPI(email, password);
+
+       // Store JWT token
+       localStorage.setItem("authToken", token);
+
+       // Map API response to AuthUser format
+       const user: User = {
+         id: userData.id,
+         trevecca_id: String(userData.id),
+         email: userData.email,
+         first_name: userData.firstName,
+         last_name: userData.lastName,
+         role: userData.role as "admin" | "student",
+         major: null,
+         year: null,
+         created_at: new Date().toISOString(),
+       };
+
+       const tutor: Tutor | null = userData.tutor
+         ? {
+             user_id: userData.id,
+             subjects: userData.tutor.subjects.join(", "),
+             hourly_limit: userData.tutor.hourlyLimit,
+             active: userData.tutor.active,
+           }
+         : null;
+
+       const authUser: AuthUser = {
+         user,
+         tutor,
+         isAdmin: userData.role === "admin",
+         isTutor: Boolean(userData.tutor?.active),
+       };
+
+       dispatch({ type: "LOGIN_SUCCESS", payload: authUser });
+     } catch (error) {
+       dispatch({
+         type: "LOGIN_ERROR",
+         payload: error instanceof Error ? error.message : "Login failed",
+       });
      }
- 
-     // Check if user is a tutor
-     const tutor = mockTutors.find((t) => t.user_id === user.id) || null;
- 
-     const authUser: AuthUser = {
-       user,
-       tutor,
-       isAdmin: user.role === "admin",
-       isTutor: tutor !== null && tutor.active,
-     };
- 
-     dispatch({ type: "LOGIN_SUCCESS", payload: authUser });
    };
  
-   const loginWithMicrosoft = async () => {
-     // TODO: Implement Microsoft SSO integration
-     dispatch({ type: "LOGIN_START" });
-     await new Promise((resolve) => setTimeout(resolve, 500));
-     
-     // For demo, log in as admin
-     const adminUser = mockUsers.find((u) => u.role === "admin")!;
-     const authUser: AuthUser = {
-       user: adminUser,
-       tutor: null,
-       isAdmin: true,
-       isTutor: false,
-     };
-     
-     dispatch({ type: "LOGIN_SUCCESS", payload: authUser });
-   };
+  const loginWithMicrosoft = async () => {
+    // Placeholder for future Microsoft Entra ID integration.
+    dispatch({ type: "LOGIN_START" });
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    dispatch({
+      type: "LOGIN_ERROR",
+      payload: "Microsoft sign-in is coming soon. Please use email/password for now.",
+    });
+  };
  
    const logout = () => {
+     localStorage.removeItem("authToken");
      dispatch({ type: "LOGOUT" });
    };
  

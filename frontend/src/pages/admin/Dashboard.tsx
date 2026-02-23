@@ -214,8 +214,10 @@
              </div>
              <div className="flex items-center justify-between">
                <div className="flex items-center gap-3">
-                 <Clock size={20} className="text-accent" />
-                 <span className="text-sm text-foreground">Avg Duration</span>
+                 <span className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 ring-1 ring-primary/25">
+                   <Clock size={16} className="text-primary" />
+                 </span>
+                 <span className="text-sm font-medium text-foreground">Avg Duration</span>
                </div>
                <span className="font-semibold text-foreground">
                  {Math.round(
