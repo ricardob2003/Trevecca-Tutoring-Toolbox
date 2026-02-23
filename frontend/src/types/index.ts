@@ -38,20 +38,33 @@
    created_at: string; // timestamp as ISO string
  }
  
- export interface TutoringSession {
-   id: number;
-   tutor_id: number;
-   user_id: number;
-   request_id: number;
-   course_id: number;
-   start_time: string | null; // timestamp as ISO string
-   end_time: string | null; // timestamp as ISO string
-   status: string | null; // "scheduled" | "completed" | "cancelled"
-   attended: boolean | null;
-   notes: string | null;
- }
- 
- export interface SessionMetrics {
+export interface TutoringSession {
+  id: number;
+  tutor_id: number;
+  user_id: number;
+  request_id: number;
+  course_id: number;
+  start_time: string | null; // timestamp as ISO string
+  end_time: string | null; // timestamp as ISO string
+  status: string | null; // "scheduled" | "completed" | "cancelled"
+  attended: boolean | null;
+  notes: string | null;
+}
+
+/** Student-initiated meeting request to a tutor (pending until tutor accepts/declines). */
+export interface SessionRequest {
+  id: number;
+  tutor_id: number;
+  user_id: number; // student
+  course_id: number;
+  requested_start_time: string; // ISO string
+  requested_end_time: string; // ISO string
+  notes: string | null;
+  status: "pending" | "accepted" | "declined";
+  created_at: string; // ISO string
+}
+
+export interface SessionMetrics {
    date: string; // date as ISO string (PK)
    total_sessions: number | null;
    total_requests: number | null;

@@ -18,10 +18,11 @@
  import AdminStudents from "./pages/admin/Students";
  import AdminAnalytics from "./pages/admin/Analytics";
  
- // Student Pages
- import StudentHome from "./pages/student/Home";
- import StudentRequest from "./pages/student/Request";
- import StudentClasses from "./pages/student/Classes";
+// Student Pages
+import StudentHome from "./pages/student/Home";
+import StudentRequest from "./pages/student/Request";
+import StudentClasses from "./pages/student/Classes";
+import MyTutors from "./pages/student/MyTutors";
  
  // Tutor Pages
  import TutorDashboard from "./pages/tutor/Dashboard";
@@ -49,10 +50,11 @@
              <Route path="/admin/students" element={<AppShell><AdminStudents /></AppShell>} />
              <Route path="/admin/analytics" element={<AppShell><AdminAnalytics /></AppShell>} />
  
-             {/* Student Routes */}
-             <Route path="/student/home" element={<AppShell><StudentHome /></AppShell>} />
-             <Route path="/student/request" element={<AppShell><StudentRequest /></AppShell>} />
-             <Route path="/student/classes" element={<AppShell><StudentClasses /></AppShell>} />
+            {/* Student Routes */}
+            <Route path="/student/home" element={<AppShell><StudentHome /></AppShell>} />
+            <Route path="/student/request" element={<AppShell><StudentRequest /></AppShell>} />
+            <Route path="/student/classes" element={<AppShell><StudentClasses /></AppShell>} />
+            <Route path="/student/mytutors" element={<AppShell><MyTutors /></AppShell>} />
  
              {/* Tutor Routes */}
              <Route path="/tutor/dashboard" element={<AppShell><TutorDashboard /></AppShell>} />
