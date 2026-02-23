@@ -1,25 +1,21 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/context/AuthContext";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import treveccaLogo from '@/Images/TrevLogo.webp';
 export default function Login() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const {
-    login,
-    loginWithMicrosoft,
-    isLoading,
-    error
-  } = useAuth();
-  const navigate = useNavigate();
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await login(email, password);
-  };
-  const handleMicrosoftLogin = async () => {
-    await loginWithMicrosoft();
-  };
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const { login, loginWithMicrosoft, isLoading, error } = useAuth();
+    const navigate = useNavigate();
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        await login(email, password);
+    };
+    const handleMicrosoftLogin = async () => {
+        await loginWithMicrosoft();
+    };
 
   // Redirect after successful login is handled in App.tsx
   const {

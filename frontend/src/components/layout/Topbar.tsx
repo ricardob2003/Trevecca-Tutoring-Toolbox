@@ -30,18 +30,18 @@
            <span className="absolute top-1 right-1 w-2 h-2 bg-accent rounded-full" />
          </button>
  
-         {/* User Menu */}
-         <div className="flex items-center gap-3">
-           <div className="text-right hidden sm:block">
-             <p className="text-sm font-medium text-foreground">
-               {currentUser.user.first_name} {currentUser.user.last_name}
-             </p>
-             <p className="text-xs text-muted-foreground">{roleLabel}</p>
-           </div>
-           <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
-             <User size={20} className="text-primary-foreground" />
-           </div>
-         </div>
+        {/* User Menu */}
+        <div className="flex items-center gap-3">
+          <div className="hidden rounded-md border border-border/60 bg-muted/40 px-3 py-1.5 text-right sm:block">
+            <p className="text-sm font-semibold text-foreground">
+              {currentUser.user.first_name} {currentUser.user.last_name}
+            </p>
+            <p className="text-xs font-medium text-foreground/80">{roleLabel}</p>
+          </div>
+          <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
+            <User size={20} className="text-primary-foreground" />
+          </div>
+        </div>
        </div>
      </header>
    );

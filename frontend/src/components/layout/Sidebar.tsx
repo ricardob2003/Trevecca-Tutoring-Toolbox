@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import { LayoutDashboard, FileText, Users, BookOpen, GraduationCap, Home, Search, Calendar, LogOut, ChevronLeft, Menu } from "lucide-react";
+import { LayoutDashboard, FileText, Users, BookOpen, GraduationCap, Home, Search, Calendar, LogOut, ChevronLeft, Menu, BarChart3 } from "lucide-react";
 import { useState } from "react";
 import tnuLogo from "@/Images/TNU-Logo.jpg";
 interface NavItem {
@@ -40,6 +40,10 @@ export function Sidebar() {
     label: "Students",
     path: "/admin/students",
     icon: <GraduationCap size={20} />
+  }, {
+    label: "Analytics",
+    path: "/admin/analytics",
+    icon: <BarChart3 size={20} />
   }];
   const studentLinks: NavItem[] = [{
     label: "Home",
@@ -125,7 +129,7 @@ export function Sidebar() {
        </nav>
 
        {/* User Info & Logout */}
-       <div className="p-4 border-t border-sidebar-border bg-[#532c6d] border-0">
+       <div className="p-4 border-t border-sidebar-border">
          {!collapsed && <div className="mb-3">
              <p className="text-sm font-medium text-white/80 truncate">
                {currentUser.user.first_name} {currentUser.user.last_name}

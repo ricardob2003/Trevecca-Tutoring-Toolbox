@@ -16,6 +16,7 @@
  import AdminTutors from "./pages/admin/Tutors";
  import AdminClasses from "./pages/admin/Classes";
  import AdminStudents from "./pages/admin/Students";
+ import AdminAnalytics from "./pages/admin/Analytics";
  
 // Student Pages
 import StudentHome from "./pages/student/Home";
@@ -47,6 +48,7 @@ import MyTutors from "./pages/student/MyTutors";
              <Route path="/admin/tutors" element={<AppShell><AdminTutors /></AppShell>} />
              <Route path="/admin/classes" element={<AppShell><AdminClasses /></AppShell>} />
              <Route path="/admin/students" element={<AppShell><AdminStudents /></AppShell>} />
+             <Route path="/admin/analytics" element={<AppShell><AdminAnalytics /></AppShell>} />
  
             {/* Student Routes */}
             <Route path="/student/home" element={<AppShell><StudentHome /></AppShell>} />
