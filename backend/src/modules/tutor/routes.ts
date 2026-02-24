@@ -72,6 +72,87 @@ export async function tutorRoutes(app: FastifyInstance) {
         return reply.code(200).send(tutors);
     });
 
+    app.get("/:id/students", async (request, reply) => {
+        const parsedParams = tutorIdParamsSchema.safeParse(request.params);
+        if (!parsedParams.success) {
+            return reply.code(400).send({
+                message: "Invalid tutor ID in parameters",
+                issues: parsedParams.error.flatten(),
+            });
+        }
+
+        const tutorId = parsedParams.data.id;
+
+        const existingTutor = await app.prisma.tutor.findUnique({
+            where: { userId: tutorId },
+            select: { userId: true },
+        });
+
+        if (!existingTutor) {
+            return reply.code(404).send({ message: "Tutor not found" });
+        }
+
+        const approvedRequests = await app.prisma.tutoringRequest.findMany({
+            where: {
+                requestedTutorId: tutorId,
+                status: "approved",
+            },
+            select: {
+                id: true,
+                user: {
+                    select: {
+                        treveccaId: true,
+                        firstName: true,
+                        lastName: true,
+                        email: true,
+                    },
+                },
+                course: {
+                    select: {
+                        id: true,
+                        code: true,
+                        title: true,
+                    },
+                },
+                sessions: {
+                    orderBy: {
+                        startTime: "desc",
+                    },
+                    select: {
+                        id: true,
+                        startTime: true,
+                        endTime: true,
+                        status: true,
+                        attended: true,
+                        notes: true,
+                    },
+                },
+            },
+            orderBy: {
+                id: "desc",
+            },
+        });
+
+        const students = approvedRequests.map((requestItem) => {
+            const currentSession = requestItem.sessions[0] ?? null;
+
+            return {
+                student: {
+                    id: requestItem.user.treveccaId,
+                    firstName: requestItem.user.firstName,
+                    lastName: requestItem.user.lastName,
+                    name: `${requestItem.user.firstName} ${requestItem.user.lastName}`,
+                    email: requestItem.user.email,
+                },
+                course: requestItem.course,
+                currentSessionStatus: currentSession?.status ?? null,
+                sessions: requestItem.sessions,
+            };
+        });
+
+        return reply.code(200).send(students);
+    });
+
 
     app.post("/", async (request, reply) => {
         const parsed = createTutorBodySchema.safeParse(request.body);
