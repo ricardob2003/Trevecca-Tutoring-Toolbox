@@ -14,6 +14,24 @@ import {
 } from "@/lib/api";
 import type { TutorWithUser } from "@/types";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
+interface TutorAssignedStudent {
+  student: {
+    id: number;
+    firstName: string;
+    lastName: string;
+    name: string;
+    email: string;
+  };
+  course: {
+    id: number;
+    code: string;
+    title: string;
+  };
+  currentSessionStatus: string | null;
+}
+
 function mapApiTutorToUi(tutor: TutorApiRecord): TutorWithUser {
   return {
     user_id: tutor.userId,
@@ -48,12 +66,16 @@ export default function AdminTutors() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isStudentsModalOpen, setIsStudentsModalOpen] = useState(false);
   const [selectedTutor, setSelectedTutor] = useState<TutorWithUser | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [savingTutorId, setSavingTutorId] = useState<number | null>(null);
+  const [isStudentsLoading, setIsStudentsLoading] = useState(false);
+  const [studentsError, setStudentsError] = useState<string | null>(null);
+  const [assignedStudents, setAssignedStudents] = useState<TutorAssignedStudent[]>([]);
 
   const [newTutorUserIdInput, setNewTutorUserIdInput] = useState("");
   const [formData, setFormData] = useState({
@@ -187,6 +209,40 @@ export default function AdminTutors() {
     setIsEditModalOpen(true);
   };
 
+  const openStudentsModal = async (tutor: TutorWithUser) => {
+    setSelectedTutor(tutor);
+    setIsStudentsModalOpen(true);
+    setIsStudentsLoading(true);
+    setStudentsError(null);
+    setAssignedStudents([]);
+
+    try {
+      const token = localStorage.getItem("authToken");
+      const response = await fetch(`${API_URL}/api/v1/tutors/${tutor.user_id}/students`, {
+        method: "GET",
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        const message =
+          data && typeof data === "object" && "message" in data && typeof data.message === "string"
+            ? data.message
+            : "Failed to load assigned students";
+        throw new Error(message);
+      }
+
+      const data = (await response.json()) as TutorAssignedStudent[];
+      setAssignedStudents(data);
+    } catch (err) {
+      setStudentsError(err instanceof Error ? err.message : "Failed to load assigned students");
+    } finally {
+      setIsStudentsLoading(false);
+    }
+  };
+
   const resetForm = () => {
     setNewTutorUserIdInput("");
     setFormData({ major: "", subjects: "", hourly_limit: 20 });
@@ -254,6 +310,17 @@ export default function AdminTutors() {
       header: "Actions",
       render: (tutor: TutorWithUser) => (
         <div className="flex items-center gap-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              void openStudentsModal(tutor);
+            }}
+            disabled={isSaving}
+            className="p-1.5 rounded-md bg-muted text-muted-foreground hover:bg-muted/80 transition-colors disabled:opacity-50"
+            title="View Assigned Students"
+          >
+            <Users size={16} />
+          </button>
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -505,6 +572,66 @@ export default function AdminTutors() {
               {isSaving ? "Saving..." : "Save Changes"}
             </button>
           </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={isStudentsModalOpen}
+        onClose={() => {
+          setIsStudentsModalOpen(false);
+          setStudentsError(null);
+          setAssignedStudents([]);
+          setSelectedTutor(null);
+        }}
+        title="Assigned Students"
+        size="md"
+      >
+        <div className="space-y-4">
+          {selectedTutor && (
+            <div className="p-3 bg-muted rounded-md">
+              <p className="font-medium text-foreground">
+                {selectedTutor.user.first_name} {selectedTutor.user.last_name}
+              </p>
+              <p className="text-sm text-muted-foreground">{selectedTutor.user.email}</p>
+            </div>
+          )}
+
+          {isStudentsLoading ? (
+            <p className="text-sm text-muted-foreground">Loading assigned students...</p>
+          ) : studentsError ? (
+            <div className="space-y-3">
+              <p className="text-sm text-destructive">{studentsError}</p>
+              {selectedTutor && (
+                <button
+                  onClick={() => void openStudentsModal(selectedTutor)}
+                  className="btn-secondary"
+                >
+                  Retry
+                </button>
+              )}
+            </div>
+          ) : assignedStudents.length === 0 ? (
+            <EmptyState
+              icon={<Users size={32} />}
+              title="No assigned students"
+              description="This tutor has no students with approved requests."
+            />
+          ) : (
+            <div className="space-y-2">
+              {assignedStudents.map((item) => (
+                <div key={`${item.student.id}-${item.course.id}`} className="p-3 rounded-md border border-border">
+                  <p className="font-medium text-foreground">{item.student.name}</p>
+                  <p className="text-xs text-muted-foreground mb-2">{item.student.email}</p>
+                  <p className="text-sm text-foreground">
+                    {item.course.code} - {item.course.title}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Session: {item.currentSessionStatus || "Not scheduled"}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </Modal>
     </div>
