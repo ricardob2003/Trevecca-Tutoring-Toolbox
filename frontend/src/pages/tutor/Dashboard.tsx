@@ -1,61 +1,96 @@
- import { useState } from "react";
- import { useAuth } from "@/context/AuthContext";
- import { StatCard } from "@/components/ui/StatCard";
- import { StatusBadge } from "@/components/ui/StatusBadge";
- import { EmptyState } from "@/components/ui/EmptyState";
- import { Calendar, Clock, Users, BookOpen, ChevronLeft, ChevronRight, Inbox, Check, X } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { StatCard } from "@/components/ui/StatCard";
+import { StatusBadge } from "@/components/ui/StatusBadge";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Calendar, Clock, Users, BookOpen, Inbox, Check, X } from "lucide-react";
+import {
+  getRequestsAPI,
+  mapRequestItemToWithDetails,
+  patchRequestTutorResponseAPI,
+} from "@/lib/api";
+import type { TutoringRequestWithDetails } from "@/types";
 import {
   mockTutoringSessions,
   mockCourses,
   mockUsers,
   mockTutorMetrics,
-  mockSessionRequests,
-  updateSessionRequestStatus,
 } from "@/data/mockData";
- 
- type ViewMode = "day" | "week" | "month";
- 
+
+type ViewMode = "day" | "week" | "month";
+
 export default function TutorDashboard() {
   const { currentUser } = useAuth();
   const [viewMode, setViewMode] = useState<ViewMode>("week");
-  const [sessionRequestsVersion, setSessionRequestsVersion] = useState(0);
- 
-   if (!currentUser?.isTutor) {
-     return (
-       <div className="animate-fade-in">
-         <EmptyState
-           icon={<Calendar size={40} />}
-           title="Tutor Access Required"
-           description="You need to be an active tutor to access this page."
-         />
-       </div>
-     );
-   }
- 
-   const tutorId = currentUser.user.id;
- 
-   // Get tutor's sessions
-   const mySessions = mockTutoringSessions.filter((s) => s.tutor_id === tutorId);
-   const completedSessions = mySessions.filter((s) => s.status === "completed");
-   const upcomingSessions = mySessions.filter((s) => s.status === "scheduled");
- 
-  // Get tutor metrics
+  const [pendingAssignments, setPendingAssignments] = useState<TutoringRequestWithDetails[]>([]);
+  const [pendingLoading, setPendingLoading] = useState(true);
+  const [pendingError, setPendingError] = useState<string | null>(null);
+  const [actionId, setActionId] = useState<number | null>(null);
+
+  const tutorId = currentUser?.user?.id ?? 0;
+
+  const fetchPendingAssignments = useCallback(async () => {
+    if (!tutorId) return;
+    setPendingLoading(true);
+    setPendingError(null);
+    try {
+      const { items } = await getRequestsAPI({
+        status: "pending_tutor",
+        requestedTutorId: tutorId,
+      });
+      setPendingAssignments(items.map(mapRequestItemToWithDetails));
+    } catch (e) {
+      setPendingError(e instanceof Error ? e.message : "Failed to load assignments");
+      setPendingAssignments([]);
+    } finally {
+      setPendingLoading(false);
+    }
+  }, [tutorId]);
+
+  useEffect(() => {
+    if (!currentUser?.isTutor || !tutorId) return;
+    fetchPendingAssignments();
+  }, [currentUser?.isTutor, tutorId, fetchPendingAssignments]);
+
+  const handleAccept = async (requestId: number) => {
+    setActionId(requestId);
+    try {
+      await patchRequestTutorResponseAPI(requestId, true);
+      await fetchPendingAssignments();
+    } catch {
+      setPendingError("Failed to accept");
+    } finally {
+      setActionId(null);
+    }
+  };
+
+  const handleDecline = async (requestId: number) => {
+    setActionId(requestId);
+    try {
+      await patchRequestTutorResponseAPI(requestId, false);
+      await fetchPendingAssignments();
+    } catch {
+      setPendingError("Failed to decline");
+    } finally {
+      setActionId(null);
+    }
+  };
+
+  if (!currentUser?.isTutor) {
+    return (
+      <div className="animate-fade-in">
+        <EmptyState
+          icon={<Calendar size={40} />}
+          title="Tutor Access Required"
+          description="You need to be an active tutor to access this page."
+        />
+      </div>
+    );
+  }
+
+  const mySessions = mockTutoringSessions.filter((s) => s.tutor_id === tutorId);
+  const upcomingSessions = mySessions.filter((s) => s.status === "scheduled");
   const metrics = mockTutorMetrics.find((m) => m.tutor_id === tutorId);
-
-  // Pending session requests (students requesting a meeting with this tutor)
-  const pendingSessionRequests = mockSessionRequests.filter(
-    (r) => r.tutor_id === tutorId && r.status === "pending"
-  );
-
-  const handleAcceptSessionRequest = (requestId: number) => {
-    updateSessionRequestStatus(requestId, "accepted");
-    setSessionRequestsVersion((v) => v + 1);
-  };
-
-  const handleDeclineSessionRequest = (requestId: number) => {
-    updateSessionRequestStatus(requestId, "declined");
-    setSessionRequestsVersion((v) => v + 1);
-  };
 
   // Group sessions by date for the view
    const sessionsByDate = mySessions.reduce((acc, session) => {
@@ -95,66 +130,66 @@ export default function TutorDashboard() {
         />
       </div>
 
-      {/* Session Requests */}
+      {/* Pending Assignments (admin assigned you; accept or decline) */}
       <div className="mb-8">
         <h2 className="section-header mb-4 flex items-center gap-2">
           <Inbox size={22} />
-          Session Requests
+          Pending Assignments
         </h2>
+        {pendingError && (
+          <div className="mb-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">
+            {pendingError}
+          </div>
+        )}
         <div className="card-base">
-          {pendingSessionRequests.length === 0 ? (
+          {pendingLoading ? (
             <p className="p-6 text-sm text-muted-foreground text-center">
-              No pending session requests. Students will appear here when they request a meeting from My Tutors.
+              Loading assignments...
+            </p>
+          ) : pendingAssignments.length === 0 ? (
+            <p className="p-6 text-sm text-muted-foreground text-center">
+              No pending assignments. When an admin assigns you to a request, it will appear here for you to accept or decline.
             </p>
           ) : (
             <div className="divide-y divide-border">
-              {pendingSessionRequests.map((req) => {
-                const student = mockUsers.find((u) => u.id === req.user_id);
-                const course = mockCourses.find((c) => c.id === req.course_id);
-                const start = new Date(req.requested_start_time);
-                const end = new Date(req.requested_end_time);
-                const dateStr = start.toLocaleDateString();
-                const timeStr = `${start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} – ${end.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
-                return (
-                  <div
-                    key={req.id}
-                    className="flex flex-wrap items-start justify-between gap-4 p-4 hover:bg-muted/30 transition-colors"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium text-foreground">
-                        {student?.first_name} {student?.last_name}
+              {pendingAssignments.map((req) => (
+                <div
+                  key={req.id}
+                  className="flex flex-wrap items-start justify-between gap-4 p-4 hover:bg-muted/30 transition-colors"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-foreground">
+                      {req.user.first_name} {req.user.last_name}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {req.course.code} – {req.course.title}
+                    </p>
+                    {req.description && (
+                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                        {req.description}
                       </p>
-                      <p className="text-sm text-muted-foreground">
-                        {course?.code} – {course?.title}
-                      </p>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {dateStr} · {timeStr}
-                      </p>
-                      {req.notes && (
-                        <p className="text-sm text-muted-foreground mt-1 italic">
-                          {req.notes}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <button
-                        onClick={() => handleAcceptSessionRequest(req.id)}
-                        className="btn-primary text-sm flex items-center gap-1"
-                      >
-                        <Check size={16} />
-                        Accept
-                      </button>
-                      <button
-                        onClick={() => handleDeclineSessionRequest(req.id)}
-                        className="btn-secondary text-sm flex items-center gap-1"
-                      >
-                        <X size={16} />
-                        Decline
-                      </button>
-                    </div>
+                    )}
                   </div>
-                );
-              })}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button
+                      onClick={() => handleAccept(req.id)}
+                      disabled={actionId === req.id}
+                      className="btn-primary text-sm flex items-center gap-1 disabled:opacity-50"
+                    >
+                      <Check size={16} />
+                      Accept
+                    </button>
+                    <button
+                      onClick={() => handleDecline(req.id)}
+                      disabled={actionId === req.id}
+                      className="btn-secondary text-sm flex items-center gap-1 disabled:opacity-50"
+                    >
+                      <X size={16} />
+                      Decline
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>

@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import bcrypt from "bcrypt";
 
+
 const loginBodySchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),

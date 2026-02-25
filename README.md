@@ -89,3 +89,28 @@ Services:
 - API: `http://localhost:3000`
 - PostgreSQL: `localhost:5432`
 - Redis: `localhost:6379`
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+Task 3.1 — Backend: 
+Login → JWT
+GET /api/v1/requests → list (with filters via query params)
+GET /api/v1/requests/:id → one request
+POST /api/v1/requests → create
+PATCH /api/v1/requests/:id → update
+DELETE /api/v1/requests/:id → delete
+
