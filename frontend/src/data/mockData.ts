@@ -128,6 +128,7 @@ import type {
      course_id: 1,
      description: "Need help with basic programming concepts and loops",
      status: "pending",
+     decline_reason: null,
      created_at: "2024-02-15T14:00:00Z",
    },
    {
@@ -137,6 +138,7 @@ import type {
      course_id: 3,
      description: "Struggling with quadratic equations",
      status: "pending",
+     decline_reason: null,
      created_at: "2024-02-16T10:30:00Z",
    },
    {
@@ -146,6 +148,7 @@ import type {
      course_id: 5,
      description: "Need help preparing for statistics midterm",
      status: "approved",
+     decline_reason: null,
      created_at: "2024-02-10T09:00:00Z",
    },
    {
@@ -155,6 +158,7 @@ import type {
      course_id: 2,
      description: "Help with binary trees and sorting algorithms",
      status: "denied",
+     decline_reason: "No tutors available for this course.",
      created_at: "2024-02-08T11:00:00Z",
    },
  ];
