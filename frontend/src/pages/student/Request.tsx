@@ -177,7 +177,7 @@ import {
    }
  
    return (
-     <div className="animate-fade-in mx-auto w-full max-w-6xl">
+     <div className="animate-fade-in w-full">
       <h1 className="page-header">Request a Tutor</h1>
  
       {/* Progress Steps */}
