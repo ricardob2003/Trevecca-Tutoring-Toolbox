@@ -5,3 +5,4 @@ backend/.env
 npm-debug.log*
 .DS_Store
 .idea
+.env
