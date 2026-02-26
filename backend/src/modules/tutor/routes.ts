@@ -133,7 +133,7 @@ export async function tutorRoutes(app: FastifyInstance) {
             },
         });
 
-        const students = approvedRequests.map((requestItem) => {
+        const students = approvedRequests.map((requestItem: (typeof approvedRequests)[number]) => {
             const currentSession = requestItem.sessions[0] ?? null;
 
             return {

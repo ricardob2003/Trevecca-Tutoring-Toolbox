@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL ?? (typeof window !== "undefined" ? "" : "http://localhost:3000");
+const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
 function withCredentials(init: RequestInit = {}): RequestInit {
   return {
@@ -199,11 +199,46 @@ export async function updateTutorActiveAPI(
   return response.json();
 }
 
+export async function getTutorAssignedStudentsAPI(
+  tutorId: number
+): Promise<
+  Array<{
+    student: {
+      id: number;
+      firstName: string;
+      lastName: string;
+      name: string;
+      email: string;
+    };
+    course: {
+      id: number;
+      code: string;
+      title: string;
+    };
+    currentSessionStatus: string | null;
+  }>
+> {
+  const response = await fetch(
+    `${API_URL}/api/v1/tutors/${tutorId}/students`,
+    withCredentials({
+      method: "GET",
+    })
+  );
+
+  if (!response.ok) {
+    await parseApiError(response, "Failed to load assigned students");
+  }
+
+  return response.json();
+}
+
 export async function getAssignableTutorsAPI(): Promise<TutorApiRecord[]> {
-  const response = await fetch(`${API_URL}/api/v1/tutors/assignable`, {
-    method: "GET",
-    headers: getAuthHeaders(),
-  });
+  const response = await fetch(
+    `${API_URL}/api/v1/tutors/assignable`,
+    withCredentials({
+      method: "GET",
+    })
+  );
   if (!response.ok) await parseApiError(response, "Failed to load tutors");
   return response.json();
 }
@@ -217,10 +252,12 @@ export interface CourseApiItem {
 }
 
 export async function getCoursesAPI(): Promise<CourseApiItem[]> {
-  const response = await fetch(`${API_URL}/api/v1/courses`, {
-    method: "GET",
-    headers: getAuthHeaders(),
-  });
+  const response = await fetch(
+    `${API_URL}/api/v1/courses`,
+    withCredentials({
+      method: "GET",
+    })
+  );
 
   if (!response.ok) {
     await parseApiError(response, "Failed to load courses");
@@ -285,7 +322,12 @@ export async function getRequestsAPI(
    if (params?.userId != null) search.set("userId", String(params.userId));
   const qs = search.toString();
   const url = `${API_URL}/api/v1/requests${qs ? `?${qs}` : ""}`;
-  const response = await fetch(url, { method: "GET", headers: getAuthHeaders() });
+  const response = await fetch(
+    url,
+    withCredentials({
+      method: "GET",
+    })
+  );
   if (!response.ok) await parseApiError(response, "Failed to load requests");
   return response.json();
 }
@@ -298,16 +340,19 @@ export interface CreateRequestPayload {
 }
 
 export async function createRequestAPI(payload: CreateRequestPayload): Promise<RequestItem> {
-  const response = await fetch(`${API_URL}/api/v1/requests`, {
-    method: "POST",
-    headers: getAuthHeaders(),
-    body: JSON.stringify({
-      userId: payload.userId,
-      courseId: payload.courseId,
-      ...(payload.description ? { description: payload.description } : {}),
-      ...(payload.requestedTutorId != null ? { requestedTutorId: payload.requestedTutorId } : {}),
-    }),
-  });
+  const response = await fetch(
+    `${API_URL}/api/v1/requests`,
+    withCredentials({
+      method: "POST",
+      headers: getJsonHeaders(),
+      body: JSON.stringify({
+        userId: payload.userId,
+        courseId: payload.courseId,
+        ...(payload.description ? { description: payload.description } : {}),
+        ...(payload.requestedTutorId != null ? { requestedTutorId: payload.requestedTutorId } : {}),
+      }),
+    })
+  );
   if (!response.ok) await parseApiError(response, "Failed to submit request");
   return response.json();
 }
@@ -319,21 +364,27 @@ export interface PatchRequestPayload {
 }
 
 export async function patchRequestAPI(id: number, payload: PatchRequestPayload): Promise<RequestItem> {
-  const response = await fetch(`${API_URL}/api/v1/requests/${id}`, {
-    method: "PATCH",
-    headers: getAuthHeaders(),
-    body: JSON.stringify(payload),
-  });
+  const response = await fetch(
+    `${API_URL}/api/v1/requests/${id}`,
+    withCredentials({
+      method: "PATCH",
+      headers: getJsonHeaders(),
+      body: JSON.stringify(payload),
+    })
+  );
   if (!response.ok) await parseApiError(response, "Failed to update request");
   return response.json();
 }
 
 export async function patchRequestTutorResponseAPI(id: number, accepted: boolean): Promise<RequestItem> {
-  const response = await fetch(`${API_URL}/api/v1/requests/${id}/tutor-response`, {
-    method: "PATCH",
-    headers: getAuthHeaders(),
-    body: JSON.stringify({ accepted }),
-  });
+  const response = await fetch(
+    `${API_URL}/api/v1/requests/${id}/tutor-response`,
+    withCredentials({
+      method: "PATCH",
+      headers: getJsonHeaders(),
+      body: JSON.stringify({ accepted }),
+    })
+  );
   if (!response.ok) await parseApiError(response, "Failed to respond");
   return response.json();
 }
