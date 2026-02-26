@@ -11,6 +11,7 @@ import { tutorRoutes } from "./modules/tutor/routes.js";
 export async function buildApp() {
   const app = Fastify({
     logger: true,
+    ignoreTrailingSlash: true,
   });
 
   await app.register(cors, {

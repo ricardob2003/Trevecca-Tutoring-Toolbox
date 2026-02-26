@@ -77,7 +77,7 @@
            </div>
            <div className="divide-y divide-border">
              {pendingRequests.length === 0 ? (
-               <div className="p-6 text-center text-muted-foreground">
+               <div className="p-6 flex items-center justify-center text-center text-muted-foreground">
                  No pending requests
                </div>
              ) : (
@@ -120,7 +120,7 @@
            </div>
            <div className="divide-y divide-border">
              {activeTutors.length === 0 ? (
-               <div className="p-6 text-center text-muted-foreground">
+               <div className="p-6 flex items-center justify-center text-center text-muted-foreground">
                  No active tutors
                </div>
              ) : (
@@ -162,7 +162,7 @@
            </div>
            <div className="divide-y divide-border">
              {upcomingSessions.length === 0 ? (
-               <div className="p-6 text-center text-muted-foreground">
+               <div className="p-6 flex items-center justify-center text-center text-muted-foreground">
                  No upcoming sessions
                </div>
              ) : (

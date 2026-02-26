@@ -7,14 +7,13 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Users, Plus, Edit, ToggleLeft, ToggleRight } from "lucide-react";
 import {
   createTutorAPI,
+  getTutorAssignedStudentsAPI,
   getTutorsAPI,
   updateTutorAPI,
   updateTutorActiveAPI,
   type TutorApiRecord,
 } from "@/lib/api";
 import type { TutorWithUser } from "@/types";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 interface TutorAssignedStudent {
   student: {
@@ -217,24 +216,7 @@ export default function AdminTutors() {
     setAssignedStudents([]);
 
     try {
-      const token = localStorage.getItem("authToken");
-      const response = await fetch(`${API_URL}/api/v1/tutors/${tutor.user_id}/students`, {
-        method: "GET",
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-      });
-
-      if (!response.ok) {
-        const data = await response.json().catch(() => null);
-        const message =
-          data && typeof data === "object" && "message" in data && typeof data.message === "string"
-            ? data.message
-            : "Failed to load assigned students";
-        throw new Error(message);
-      }
-
-      const data = (await response.json()) as TutorAssignedStudent[];
+      const data = (await getTutorAssignedStudentsAPI(tutor.user_id)) as TutorAssignedStudent[];
       setAssignedStudents(data);
     } catch (err) {
       setStudentsError(err instanceof Error ? err.message : "Failed to load assigned students");
@@ -394,7 +376,103 @@ export default function AdminTutors() {
         </div>
       </div>
 
-      <div className="card-base overflow-hidden">
+      {/* Mobile card grid (hidden on lg+) */}
+      <div className="lg:hidden">
+        {isLoading ? (
+          <div className="p-8 text-center text-muted-foreground">Loading tutors...</div>
+        ) : filteredTutors.length === 0 ? (
+          <EmptyState
+            icon={<Users size={40} />}
+            title="No tutors found"
+            description="There are no tutors matching your filters."
+            action={
+              <button onClick={() => setIsCreateModalOpen(true)} className="btn-primary">
+                Add First Tutor
+              </button>
+            }
+          />
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {filteredTutors.map((tutor) => (
+              <div key={tutor.user_id} className="card-base p-5">
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <span className="text-sm font-medium text-primary">
+                      {tutor.user.first_name[0]}
+                      {tutor.user.last_name[0]}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-foreground truncate">
+                      {tutor.user.first_name} {tutor.user.last_name}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">{tutor.user.email}</p>
+                  </div>
+                  <StatusBadge status={tutor.active ? "active" : "inactive"} />
+                </div>
+
+                <div className="space-y-2 mb-4 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Major</span>
+                    <span className="text-foreground">
+                      {tutor.major || <span className="italic text-muted-foreground">Not set</span>}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Hours/Week</span>
+                    <span className="text-foreground">{tutor.hourly_limit || "-"}</span>
+                  </div>
+                </div>
+
+                {tutor.subjects && (
+                  <div className="flex flex-wrap gap-1 mb-4">
+                    {tutor.subjects.split(",").map((subject) => (
+                      <span key={subject} className="badge-primary">
+                        {subject.trim()}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2 pt-3 border-t border-border">
+                  <button
+                    onClick={() => void openStudentsModal(tutor)}
+                    disabled={isSaving}
+                    className="flex-1 flex items-center justify-center gap-1.5 p-1.5 rounded-md bg-muted text-muted-foreground hover:bg-muted/80 transition-colors disabled:opacity-50 text-xs"
+                    title="View Assigned Students"
+                  >
+                    <Users size={14} /> Students
+                  </button>
+                  <button
+                    onClick={() => openEditModal(tutor)}
+                    disabled={isSaving}
+                    className="flex-1 flex items-center justify-center gap-1.5 p-1.5 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors disabled:opacity-50 text-xs"
+                    title="Edit"
+                  >
+                    <Edit size={14} /> Edit
+                  </button>
+                  <button
+                    onClick={() => void handleToggleActive(tutor)}
+                    disabled={savingTutorId === tutor.user_id || isSaving}
+                    className={`flex-1 flex items-center justify-center gap-1.5 p-1.5 rounded-md transition-colors disabled:opacity-50 text-xs ${
+                      tutor.active
+                        ? "bg-success/10 text-success hover:bg-success/20"
+                        : "bg-muted text-muted-foreground hover:bg-muted/80"
+                    }`}
+                    title={tutor.active ? "Deactivate" : "Activate"}
+                  >
+                    {tutor.active ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
+                    {tutor.active ? "Deactivate" : "Activate"}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Desktop table (hidden below lg) */}
+      <div className="hidden lg:block card-base overflow-hidden">
         {isLoading ? (
           <div className="p-8 text-center text-muted-foreground">Loading tutors...</div>
         ) : filteredTutors.length === 0 ? (

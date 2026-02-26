@@ -41,6 +41,7 @@ npm --prefix frontend run dev
 - Prisma
 - PostgreSQL
 - JWT auth (local flow now, Microsoft Entra flow scaffolded)
+  - Session token is also stored in an HTTP-only cookie for browser session persistence
 - Email provider abstraction
     - `console` provider (default for dev)
     - `azure-communication-services` provider stub
@@ -65,6 +66,8 @@ npm --prefix backend run dev
 
 - `GET /api/v1/health`
 - `POST /api/v1/auth/login`
+- `GET /api/v1/auth/me`
+- `POST /api/v1/auth/logout`
 - `GET /api/v1/auth/microsoft/start` (placeholder)
 - `GET /api/v1/auth/microsoft/callback` (placeholder)
 - `POST /api/v1/email/test`

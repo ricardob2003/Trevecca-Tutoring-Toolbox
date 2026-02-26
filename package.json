@@ -7,7 +7,7 @@
     "dev:backend": "npm --prefix backend run dev",
     "build:frontend": "npm --prefix frontend run build",
     "build:backend": "npm --prefix backend run build",
-    "docker:up": "docker compose up --build",
-    "docker:down": "docker compose down --remove-orphans"
+    "docker:up": "docker compose --env-file ./backend/.env up --build",
+    "docker:down": "docker compose --env-file ./backend/.env down --remove-orphans"
   }
 }

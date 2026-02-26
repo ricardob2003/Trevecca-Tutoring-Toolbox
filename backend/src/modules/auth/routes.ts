@@ -1,11 +1,15 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import bcrypt from "bcrypt";
+import { env } from "../../config/env.js";
 
 const loginBodySchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
 });
+
+const SESSION_COOKIE_NAME = "tt_session";
+const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
 
 function buildRoles(baseRole: string, isActiveTutor: boolean) {
   const roles = new Set<string>([baseRole]);
@@ -13,6 +17,57 @@ function buildRoles(baseRole: string, isActiveTutor: boolean) {
     roles.add("tutor");
   }
   return Array.from(roles);
+}
+
+function buildSessionCookie(token: string) {
+  const attributes = [
+    `${SESSION_COOKIE_NAME}=${encodeURIComponent(token)}`,
+    "Path=/",
+    "HttpOnly",
+    "SameSite=Lax",
+    `Max-Age=${SESSION_MAX_AGE_SECONDS}`,
+  ];
+
+  if (env.NODE_ENV === "production") {
+    attributes.push("Secure");
+  }
+
+  return attributes.join("; ");
+}
+
+function buildSessionCookieClear() {
+  return `${SESSION_COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`;
+}
+
+function mapUserResponse(user: {
+  treveccaId: number;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  tutor:
+    | {
+        subjects: string[];
+        hourlyLimit: number;
+        active: boolean;
+      }
+    | null;
+}) {
+  return {
+    id: user.treveccaId,
+    email: user.email,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    role: user.role,
+    tutor: user.tutor
+      ? {
+          subjects: user.tutor.subjects,
+          hourlyLimit: user.tutor.hourlyLimit,
+          active: user.tutor.active,
+        }
+      : null,
+    authProvider: "local" as const,
+  };
 }
 
 export async function authRoutes(app: FastifyInstance) {
@@ -58,10 +113,12 @@ export async function authRoutes(app: FastifyInstance) {
       authProvider: "local",
     });
 
+    reply.header("Set-Cookie", buildSessionCookie(token));
+
     return {
       token,
-      user: {
-        id: user.treveccaId,
+      user: mapUserResponse({
+        treveccaId: user.treveccaId,
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
@@ -73,11 +130,48 @@ export async function authRoutes(app: FastifyInstance) {
               active: user.tutor.active,
             }
           : null,
-        authProvider: "local",
-      },
+      }),
     };
   });
 
+  app.get("/me", { preHandler: app.authenticate }, async (request, reply) => {
+    const jwtUser = request.user as { sub?: string };
+    const treveccaId = Number(jwtUser.sub);
+    if (!Number.isInteger(treveccaId)) {
+      return reply.code(401).send({ message: "Unauthorized" });
+    }
+
+    const user = await app.prisma.user.findUnique({
+      where: { treveccaId },
+      include: { tutor: true },
+    });
+
+    if (!user) {
+      return reply.code(401).send({ message: "Unauthorized" });
+    }
+
+    return {
+      user: mapUserResponse({
+        treveccaId: user.treveccaId,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        tutor: user.tutor
+          ? {
+              subjects: user.tutor.subjects,
+              hourlyLimit: user.tutor.hourlyLimit,
+              active: user.tutor.active,
+            }
+          : null,
+      }),
+    };
+  });
+
+  app.post("/logout", async (_request, reply) => {
+    reply.header("Set-Cookie", buildSessionCookieClear());
+    return reply.code(204).send();
+  });
 
   // Future Microsoft Entra ID login routes (placeholders for now)
 

@@ -153,17 +153,17 @@
  
        {/* Stats */}
        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-         <div className="card-base p-4">
+         <div className="card-base p-4 flex flex-col gap-1">
            <p className="text-sm text-muted-foreground">Total Students</p>
            <p className="text-2xl font-bold text-foreground">{students.length}</p>
          </div>
-         <div className="card-base p-4">
+         <div className="card-base p-4 flex flex-col gap-1">
            <p className="text-sm text-muted-foreground">Student Tutors</p>
            <p className="text-2xl font-bold text-foreground">
              {students.filter((s) => isTutor(s.id)).length}
            </p>
          </div>
-         <div className="card-base p-4">
+         <div className="card-base p-4 flex flex-col gap-1">
            <p className="text-sm text-muted-foreground">Pending Passwords</p>
            <p className="text-2xl font-bold text-foreground">
              {students.filter((s) => s.temporary_password).length}
