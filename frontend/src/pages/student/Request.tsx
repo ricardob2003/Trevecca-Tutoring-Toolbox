@@ -1,9 +1,14 @@
- import { useState } from "react";
+import { useEffect, useState } from "react";
  import { useNavigate } from "react-router-dom";
  import { useAuth } from "@/context/AuthContext";
  import { SearchInput } from "@/components/ui/SearchInput";
- import { mockCourses, getActiveTutors, getTutorsForCourse } from "@/data/mockData";
  import type { Course, TutorWithUser } from "@/types";
+import type { TutorApiRecord } from "@/lib/api";
+import {
+  getCoursesAPI,
+  getAssignableTutorsAPI,
+  createRequestAPI,
+} from "@/lib/api";
  import { ArrowLeft, Check, Users } from "lucide-react";
  
  export default function StudentRequest() {
@@ -17,36 +22,119 @@
    const [description, setDescription] = useState("");
    const [isSubmitting, setIsSubmitting] = useState(false);
    const [isSuccess, setIsSuccess] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [coursesLoading, setCoursesLoading] = useState(true);
+  const [coursesError, setCoursesError] = useState<string | null>(null);
+
+  const [assignableTutors, setAssignableTutors] = useState<TutorApiRecord[]>([]);
+  const [tutorsLoading, setTutorsLoading] = useState(true);
  
-   const filteredCourses = mockCourses.filter(
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      setCoursesLoading(true);
+      setTutorsLoading(true);
+      setCoursesError(null);
+
+      try {
+        const [coursesResp, tutorsResp] = await Promise.all([
+          getCoursesAPI(),
+          getAssignableTutorsAPI(),
+        ]);
+        if (cancelled) return;
+        setCourses(
+          coursesResp.map((c) => ({
+            id: c.id,
+            code: c.code,
+            title: c.title,
+            department: c.department,
+          }))
+        );
+        setAssignableTutors(tutorsResp);
+      } catch (e) {
+        if (cancelled) return;
+        setCoursesError(
+          e instanceof Error ? e.message : "Failed to load courses or tutors"
+        );
+      } finally {
+        if (!cancelled) {
+          setCoursesLoading(false);
+          setTutorsLoading(false);
+        }
+      }
+    }
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const filteredCourses = courses.filter(
      (course) =>
        course.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
        course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
        course.department?.toLowerCase().includes(searchQuery.toLowerCase())
    );
  
-   const availableTutors = selectedCourse
-     ? getTutorsForCourse(selectedCourse.code)
-     : [];
+  const tutorsForCourse: TutorWithUser[] =
+    selectedCourse && assignableTutors.length > 0
+      ? assignableTutors
+          .filter((t) => {
+            const subjects = Array.isArray(t.subjects) ? t.subjects : [];
+            const code = selectedCourse.code;
+            const dept = selectedCourse.department;
+            return (
+              subjects.includes(code) ||
+              (dept != null && subjects.includes(dept))
+            );
+          })
+          .map((t): TutorWithUser => ({
+            user_id: t.userId,
+            major: t.user.major ?? null,
+            subjects: Array.isArray(t.subjects)
+              ? t.subjects.join(",")
+              : null,
+            hourly_limit: t.hourlyLimit,
+            active: t.active,
+            user: {
+              id: t.user.treveccaId,
+              trevecca_id: String(t.user.treveccaId),
+              email: t.user.email,
+              first_name: t.user.firstName,
+              last_name: t.user.lastName,
+              year: t.user.year,
+              created_at: "",
+              temporary_password: null,
+              role: t.user.role,
+            },
+          }))
+      : [];
  
    const handleSubmit = async () => {
-     if (!selectedCourse) return;
+    if (!selectedCourse || !currentUser) return;
  
+    setSubmitError(null);
      setIsSubmitting(true);
-     // Simulate API call
-     await new Promise((resolve) => setTimeout(resolve, 1000));
- 
-     // In a real app, this would create a tutoring_request record
-     console.log("Creating tutoring request:", {
-       user_id: currentUser?.user.id,
-       course_id: selectedCourse.id,
-       requested_tutor_id: selectedTutor?.user_id || null,
-       description,
-       status: "pending",
-     });
- 
-     setIsSubmitting(false);
-     setIsSuccess(true);
+    try {
+      await createRequestAPI({
+        userId: currentUser.user.id,
+        courseId: selectedCourse.id,
+        description: description.trim() ? description.trim() : undefined,
+        requestedTutorId: selectedTutor ? selectedTutor.user_id : null,
+      });
+      setIsSubmitting(false);
+      setIsSuccess(true);
+    } catch (e) {
+      setIsSubmitting(false);
+      setSubmitError(
+        e instanceof Error ? e.message : "Failed to submit request"
+      );
+    }
    };
  
    if (isSuccess) {
@@ -135,34 +223,59 @@
              className="mb-6"
            />
  
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto">
-             {filteredCourses.map((course) => {
-               const tutorCount = getTutorsForCourse(course.code).length;
-               return (
-                 <button
-                   key={course.id}
-                   onClick={() => {
-                     setSelectedCourse(course);
-                     setStep(2);
-                   }}
-                   className={`
-                     p-4 rounded-md border text-left transition-all
-                     ${selectedCourse?.id === course.id
-                       ? "border-primary bg-primary/5"
-                       : "border-border hover:border-primary/50 hover:bg-muted/50"
-                     }
-                   `}
-                 >
-                   <p className="font-medium text-foreground">{course.code}</p>
-                   <p className="text-sm text-muted-foreground">{course.title}</p>
-                   <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
-                     <Users size={12} />
-                     <span>{tutorCount} tutor{tutorCount !== 1 ? "s" : ""} available</span>
-                   </div>
-                 </button>
-               );
-             })}
-           </div>
+          {coursesLoading ? (
+            <p className="text-sm text-muted-foreground mt-4">
+              Loading courses...
+            </p>
+          ) : coursesError ? (
+            <p className="text-sm text-destructive mt-4">{coursesError}</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto">
+              {filteredCourses.map((course) => {
+                const tutorCount =
+                  assignableTutors.filter((t) => {
+                    const subjects = Array.isArray(t.subjects)
+                      ? t.subjects
+                      : [];
+                    const dept = course.department;
+                    return (
+                      subjects.includes(course.code) ||
+                      (dept != null && subjects.includes(dept))
+                    );
+                  }).length || 0;
+                return (
+                  <button
+                    key={course.id}
+                    onClick={() => {
+                      setSelectedCourse(course);
+                      setStep(2);
+                    }}
+                    className={`
+                      p-4 rounded-md border text-left transition-all
+                      ${
+                        selectedCourse?.id === course.id
+                          ? "border-primary bg-primary/5"
+                          : "border-border hover:border-primary/50 hover:bg-muted/50"
+                      }
+                    `}
+                  >
+                    <p className="font-medium text-foreground">
+                      {course.code}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {course.title}
+                    </p>
+                    <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
+                      <Users size={12} />
+                      <span>
+                        {tutorCount} tutor{tutorCount !== 1 ? "s" : ""} available
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
          </div>
        )}
  
@@ -186,7 +299,11 @@
              </div>
            </div>
  
-           {availableTutors.length === 0 ? (
+          {tutorsLoading ? (
+            <p className="text-center py-8 text-muted-foreground">
+              Loading tutors...
+            </p>
+          ) : tutorsForCourse.length === 0 ? (
              <div className="text-center py-8">
                <p className="text-muted-foreground mb-4">
                  No tutors are currently available for {selectedCourse.code}.
@@ -198,7 +315,7 @@
            ) : (
              <>
                <div className="space-y-3 mb-6">
-                 {availableTutors.map((tutor) => (
+                {tutorsForCourse.map((tutor) => (
                    <button
                      key={tutor!.user_id}
                      onClick={() => setSelectedTutor(tutor)}

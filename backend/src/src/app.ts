@@ -1,3 +1,4 @@
+import { tutorRoutes } from "./modules/tutors/routes.js";
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import { authPlugin } from "./plugins/auth.js";
@@ -6,9 +7,8 @@ import { authRoutes } from "./modules/auth/routes.js";
 import { healthRoutes } from "./modules/health/routes.js";
 import { emailRoutes } from "./modules/email/routes.js";
 import { createEmailService } from "./modules/email/email.service.js";
-import { tutorRoutes } from "./modules/tutor/routes.js";
-import { requestRoutes } from "./modules/request/routes.js";
-import { coursesRoutes } from "./modules/courses/routes.js";
+import { courseRoutes } from "./modules/courses/routes.js";
+import { tutoringRequestRoutes } from "./modules/tutoring-requests/routes.js";
 
 export async function buildApp() {
   const app = Fastify({
@@ -29,8 +29,8 @@ export async function buildApp() {
   await app.register(authRoutes, { prefix: "/api/v1/auth" });
   await app.register(emailRoutes, { prefix: "/api/v1/email" });
   await app.register(tutorRoutes, { prefix: "/api/v1/tutors" });
-  await app.register(requestRoutes, { prefix: "/api/v1/requests" });
-  await app.register(coursesRoutes, { prefix: "/api/v1/courses" });
+  await app.register(courseRoutes, { prefix: "/api/v1/courses" });
+  await app.register(tutoringRequestRoutes, { prefix: "/api/v1/requests" });
 
   return app;
 }

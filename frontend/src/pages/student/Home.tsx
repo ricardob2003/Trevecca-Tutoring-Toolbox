@@ -1,23 +1,29 @@
- import { Link } from "react-router-dom";
- import { useAuth } from "@/context/AuthContext";
- import { StatCard } from "@/components/ui/StatCard";
- import { StatusBadge } from "@/components/ui/StatusBadge";
- import {
-   FileText,
-   Calendar,
-   BookOpen,
-   Plus,
-   ArrowRight,
- } from "lucide-react";
- import {
-   mockTutoringRequests,
-   mockTutoringSessions,
-   mockCourses,
-   getTutorWithUser,
- } from "@/data/mockData";
- import treveccaLogo from "@/Images/TrevLogo.webp";
- 
- export default function StudentHome() {
+import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { StatCard } from "@/components/ui/StatCard";
+import { StatusBadge } from "@/components/ui/StatusBadge";
+import {
+  FileText,
+  Calendar,
+  BookOpen,
+  Plus,
+  ArrowRight,
+} from "lucide-react";
+import { mockTutoringSessions, mockCourses, getTutorWithUser } from "@/data/mockData";
+import { getRequestsAPI, mapRequestItemToWithDetails } from "@/lib/api";
+import type { TutoringRequestWithDetails } from "@/types";
+import treveccaLogo from "@/Images/TrevLogo.webp";
+
+type CourseRequestStat = {
+  courseId: number;
+  code: string;
+  title: string;
+  totalRequests: number;
+  pendingRequests: number;
+};
+
+export default function StudentHome() {
    const { currentUser } = useAuth();
  
    if (!currentUser) return null;
@@ -25,9 +31,69 @@
    const userId = currentUser.user.id;
    const isTutor = currentUser.isTutor;
  
-   // Get student's requests
-   const myRequests = mockTutoringRequests.filter((r) => r.user_id === userId);
-   const pendingRequests = myRequests.filter((r) => r.status === "pending");
+  const [myRequests, setMyRequests] = useState<TutoringRequestWithDetails[]>([]);
+  const [requestsLoading, setRequestsLoading] = useState(true);
+  const [requestsError, setRequestsError] = useState<string | null>(null);
+  const [requestsByCourse, setRequestsByCourse] = useState<CourseRequestStat[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      setRequestsLoading(true);
+      setRequestsError(null);
+      try {
+        const { items } = await getRequestsAPI({ userId });
+        if (cancelled) return;
+        const mapped = items.map(mapRequestItemToWithDetails);
+        setMyRequests(mapped);
+
+        const byCourseMap = mapped.reduce<Record<number, CourseRequestStat>>(
+          (acc, req) => {
+            const course = req.course;
+            const existing = acc[course.id];
+            if (!existing) {
+              acc[course.id] = {
+                courseId: course.id,
+                code: course.code,
+                title: course.title,
+                totalRequests: 1,
+                pendingRequests: req.status === "pending" ? 1 : 0,
+              };
+              return acc;
+            }
+            existing.totalRequests += 1;
+            if (req.status === "pending") existing.pendingRequests += 1;
+            return acc;
+          },
+          {}
+        );
+
+        setRequestsByCourse(
+          Object.values(byCourseMap).sort(
+            (a, b) => b.totalRequests - a.totalRequests
+          )
+        );
+      } catch (e) {
+        if (cancelled) return;
+        setRequestsError(
+          e instanceof Error ? e.message : "Failed to load your requests"
+        );
+      } finally {
+        if (!cancelled) {
+          setRequestsLoading(false);
+        }
+      }
+    }
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
+  const pendingRequests = myRequests.filter((r) => r.status === "pending");
  
    // Get student's sessions
    const mySessions = mockTutoringSessions.filter((s) => s.user_id === userId);
@@ -100,7 +166,7 @@
        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
          <StatCard
            title="My Requests"
-           value={myRequests.length}
+          value={requestsLoading ? "…" : myRequests.length}
            subtitle={`${pendingRequests.length} pending`}
            icon={<FileText size={24} />}
          />
@@ -116,10 +182,10 @@
          />
        </div>
  
-       {/* Two Column Layout */}
-       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-         {/* My Requests */}
-         <div className="card-base">
+      {/* Two Column Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* My Requests */}
+        <div className="card-base">
            <div className="p-4 border-b border-border flex items-center justify-between">
              <h2 className="font-semibold text-foreground">My Requests</h2>
              <Link
@@ -130,7 +196,15 @@
              </Link>
            </div>
            <div className="divide-y divide-border">
-             {myRequests.length === 0 ? (
+            {requestsLoading ? (
+              <div className="p-6 text-center text-muted-foreground">
+                Loading your requests...
+              </div>
+            ) : requestsError ? (
+              <div className="p-6 text-center text-destructive text-sm">
+                {requestsError}
+              </div>
+            ) : myRequests.length === 0 ? (
                <div className="p-6 text-center">
                  <p className="text-muted-foreground mb-4">
                    You haven't made any tutoring requests yet.
@@ -141,20 +215,18 @@
                </div>
              ) : (
                myRequests.slice(0, 5).map((request) => {
-                 const course = mockCourses.find((c) => c.id === request.course_id);
-                 const tutor = request.requested_tutor_id
-                   ? getTutorWithUser(request.requested_tutor_id)
-                   : null;
+                const course = request.course;
+                const tutor = request.requested_tutor ?? null;
                  return (
                    <div key={request.id} className="p-4 hover:bg-muted/50 transition-colors">
                      <div className="flex items-start justify-between">
                        <div>
                          <p className="font-medium text-foreground">
-                           {course?.code} - {course?.title}
+                          {course.code} - {course.title}
                          </p>
                          {tutor && (
                            <p className="text-sm text-muted-foreground">
-                             Requested: {tutor.user.first_name} {tutor.user.last_name}
+                            Requested: {tutor.user.first_name} {tutor.user.last_name}
                            </p>
                          )}
                        </div>
@@ -170,47 +242,91 @@
            </div>
          </div>
  
-         {/* Upcoming Sessions */}
-         <div className="card-base">
-           <div className="p-4 border-b border-border">
-             <h2 className="font-semibold text-foreground">Upcoming Sessions</h2>
-           </div>
-           <div className="divide-y divide-border">
-             {upcomingSessions.length === 0 ? (
-               <div className="p-6 text-center">
-                 <p className="text-muted-foreground">
-                   No upcoming sessions scheduled.
-                 </p>
-               </div>
-             ) : (
-               upcomingSessions.map((session) => {
-                 const course = mockCourses.find((c) => c.id === session.course_id);
-                 const tutor = getTutorWithUser(session.tutor_id);
-                 return (
-                   <div key={session.id} className="p-4 hover:bg-muted/50 transition-colors">
-                     <div className="flex items-center gap-3">
-                       <div className="p-2 rounded-lg bg-accent/10">
-                         <Calendar size={20} className="text-accent" />
-                       </div>
-                       <div className="flex-1">
-                         <p className="font-medium text-foreground">
-                           {course?.code} with {tutor?.user.first_name}
-                         </p>
-                         <p className="text-sm text-muted-foreground">
-                           {session.start_time
-                             ? new Date(session.start_time).toLocaleString()
-                             : "Time TBD"}
-                         </p>
-                       </div>
-                       <StatusBadge status={session.status || "scheduled"} />
-                     </div>
-                   </div>
-                 );
-               })
-             )}
-           </div>
-         </div>
-       </div>
-     </div>
-   );
- }
+        {/* Upcoming Sessions */}
+        <div className="card-base">
+          <div className="p-4 border-b border-border">
+            <h2 className="font-semibold text-foreground">Upcoming Sessions</h2>
+          </div>
+          <div className="divide-y divide-border">
+            {upcomingSessions.length === 0 ? (
+              <div className="p-6 text-center">
+                <p className="text-muted-foreground">
+                  No upcoming sessions scheduled.
+                </p>
+              </div>
+            ) : (
+              upcomingSessions.map((session) => {
+                const course = mockCourses.find((c) => c.id === session.course_id);
+                const tutor = getTutorWithUser(session.tutor_id);
+                return (
+                  <div key={session.id} className="p-4 hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-accent/10">
+                        <Calendar size={20} className="text-accent" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-foreground">
+                          {course?.code} with {tutor?.user.first_name}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {session.start_time
+                            ? new Date(session.start_time).toLocaleString()
+                            : "Time TBD"}
+                        </p>
+                      </div>
+                      <StatusBadge status={session.status || "scheduled"} />
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Requests by Course */}
+      <div className="mt-6 card-base">
+        <div className="p-4 border-b border-border flex items-center justify-between">
+          <h2 className="font-semibold text-foreground">My Requests by Course</h2>
+        </div>
+        <div className="divide-y divide-border">
+          {requestsLoading ? (
+            <div className="p-6 text-center text-muted-foreground">
+              Loading request stats...
+            </div>
+          ) : requestsError ? (
+            <div className="p-6 text-center text-destructive text-sm">
+              {requestsError}
+            </div>
+          ) : requestsByCourse.length === 0 ? (
+            <div className="p-6 text-center text-muted-foreground">
+              You have no requests yet.
+            </div>
+          ) : (
+            requestsByCourse.map((c) => (
+              <div
+                key={c.courseId}
+                className="p-4 hover:bg-muted/50 transition-colors flex items-center justify-between"
+              >
+                <div>
+                  <p className="font-medium text-foreground">
+                    {c.code} - {c.title}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Pending: {c.pendingRequests}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">Total</p>
+                  <p className="text-lg font-semibold text-foreground">
+                    {c.totalRequests}
+                  </p>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
