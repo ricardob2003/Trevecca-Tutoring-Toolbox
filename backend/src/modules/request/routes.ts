@@ -109,10 +109,36 @@ async function ensureTutorExists(app: FastifyInstance, tutorId: number) {
   return Boolean(tutor);
 }
 
+async function hasDeclineReasonColumn(app: FastifyInstance) {
+  const rows = (await app.prisma.$queryRawUnsafe(
+    `
+      SELECT column_name
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'tutoring_request'
+        AND column_name = 'decline_reason'
+      LIMIT 1
+    `
+  )) as Array<{ column_name: string }>;
+
+  return rows.length > 0;
+}
+
 export async function requestRoutes(app: FastifyInstance) {
   app.addHook("preHandler", app.authenticate);
+  const declineReasonEnabled = await hasDeclineReasonColumn(app).catch(
+    () => false
+  );
 
-  const requestInclude = {
+  const requestSelect = {
+    id: true,
+    userId: true,
+    requestedTutorId: true,
+    courseId: true,
+    description: true,
+    status: true,
+    ...(declineReasonEnabled ? { declineReason: true } : {}),
+    createdAt: true,
     user: {
       select: {
         treveccaId: true,
@@ -169,7 +195,7 @@ export async function requestRoutes(app: FastifyInstance) {
 
     const items = await app.prisma.tutoringRequest.findMany({
       where,
-      include: requestInclude,
+      select: requestSelect,
       orderBy: { createdAt: "desc" },
     });
 
@@ -188,7 +214,7 @@ export async function requestRoutes(app: FastifyInstance) {
 
     const item = await app.prisma.tutoringRequest.findUnique({
       where: { id: parsed.data.id },
-      include: requestInclude,
+      select: requestSelect,
     });
 
     if (!item) {
@@ -235,7 +261,7 @@ export async function requestRoutes(app: FastifyInstance) {
         description: parsed.data.description,
         requestedTutorId: parsed.data.requestedTutorId ?? null,
       },
-      include: requestInclude,
+      select: requestSelect,
     });
 
     return reply.code(201).send(createdRequest);
@@ -277,7 +303,7 @@ export async function requestRoutes(app: FastifyInstance) {
       const updatedRequest = await app.prisma.tutoringRequest.update({
         where: { id: parsedParams.data.id },
         data: { status: "approved" },
-        include: requestInclude,
+        select: requestSelect,
       });
       return reply.code(200).send(updatedRequest);
     }
@@ -285,7 +311,7 @@ export async function requestRoutes(app: FastifyInstance) {
     const updatedRequest = await app.prisma.tutoringRequest.update({
       where: { id: parsedParams.data.id },
       data: { status: "pending", requestedTutorId: null },
-      include: requestInclude,
+      select: requestSelect,
     });
     return reply.code(200).send(updatedRequest);
   });
@@ -332,7 +358,7 @@ export async function requestRoutes(app: FastifyInstance) {
         requestedTutorId: parsedBody.data.requestedTutorId,
         status: "pending_tutor",
       },
-      include: requestInclude,
+      select: requestSelect,
     });
     return reply.code(200).send(updatedRequest);
   });
@@ -367,8 +393,11 @@ export async function requestRoutes(app: FastifyInstance) {
     }
     const updatedRequest = await app.prisma.tutoringRequest.update({
       where: { id: parsedParams.data.id },
-      data: { status: "denied", declineReason: declineReason ?? null },
-      include: requestInclude,
+      data: {
+        status: "denied",
+        ...(declineReasonEnabled ? { declineReason: declineReason ?? null } : {}),
+      },
+      select: requestSelect,
     });
     return reply.code(200).send(updatedRequest);
   });
@@ -431,11 +460,11 @@ export async function requestRoutes(app: FastifyInstance) {
         ...(parsedBody.data.status !== undefined
           ? { status: parsedBody.data.status }
           : {}),
-        ...(parsedBody.data.declineReason !== undefined
+        ...(declineReasonEnabled && parsedBody.data.declineReason !== undefined
           ? { declineReason: parsedBody.data.declineReason }
           : {}),
       },
-      include: requestInclude,
+      select: requestSelect,
     });
 
     return reply.code(200).send(updatedRequest);

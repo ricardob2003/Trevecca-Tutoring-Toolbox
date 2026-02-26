@@ -13,6 +13,7 @@ import { coursesRoutes } from "./modules/courses/routes.js";
 export async function buildApp() {
   const app = Fastify({
     logger: true,
+    ignoreTrailingSlash: true,
   });
 
   await app.register(cors, {

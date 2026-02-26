@@ -178,16 +178,16 @@ export default function AdminAnalytics() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-6">
-        <div className="card-base p-5">
+        <div className="card-base p-5 flex flex-col">
           <div className="flex items-center gap-2 mb-3 text-muted-foreground">
             <Video size={18} />
             <p className="text-sm font-medium">Total Sessions</p>
           </div>
           <p className="text-3xl font-bold text-foreground">{semesterSessions.length}</p>
-          <p className="text-xs text-muted-foreground mt-2">{selectedSemester.label}</p>
+          <p className="text-xs text-muted-foreground mt-auto pt-2">{selectedSemester.label}</p>
         </div>
 
-        <div className="card-base p-5">
+        <div className="card-base p-5 flex flex-col">
           <div className="flex items-center gap-2 mb-3 text-muted-foreground">
             <CircleDollarSign size={18} />
             <p className="text-sm font-medium">Total Spent</p>
@@ -195,10 +195,10 @@ export default function AdminAnalytics() {
           <p className="text-3xl font-bold text-foreground">
             {currencyFormatter.format(semesterTotalSpent)}
           </p>
-          <p className="text-xs text-muted-foreground mt-2">From session metrics</p>
+          <p className="text-xs text-muted-foreground mt-auto pt-2">From session metrics</p>
         </div>
 
-        <div className="card-base p-5">
+        <div className="card-base p-5 flex flex-col">
           <div className="flex items-center gap-2 mb-3 text-muted-foreground">
             <ClipboardList size={18} />
             <p className="text-sm font-medium">Class With Most Requested Tutors</p>
@@ -209,17 +209,17 @@ export default function AdminAnalytics() {
               <p className="text-sm text-muted-foreground line-clamp-2">
                 {mostRequestedTutorClass.courseTitle}
               </p>
-              <p className="text-xs text-muted-foreground mt-2">
+              <p className="text-xs text-muted-foreground mt-auto pt-2">
                 {mostRequestedTutorClass.count} tutor-specific request
                 {mostRequestedTutorClass.count === 1 ? "" : "s"}
               </p>
             </>
           ) : (
-            <p className="text-sm text-muted-foreground">No tutor-specific requests this semester.</p>
+            <p className="text-sm text-muted-foreground mt-auto">No tutor-specific requests this semester.</p>
           )}
         </div>
 
-        <div className="card-base p-5">
+        <div className="card-base p-5 flex flex-col">
           <div className="flex items-center gap-2 mb-3 text-muted-foreground">
             <Video size={18} />
             <p className="text-sm font-medium">Class With Most Recorded Sessions</p>
@@ -230,13 +230,13 @@ export default function AdminAnalytics() {
               <p className="text-sm text-muted-foreground line-clamp-2">
                 {mostRecordedSessionClass.courseTitle}
               </p>
-              <p className="text-xs text-muted-foreground mt-2">
+              <p className="text-xs text-muted-foreground mt-auto pt-2">
                 {mostRecordedSessionClass.count} completed session
                 {mostRecordedSessionClass.count === 1 ? "" : "s"}
               </p>
             </>
           ) : (
-            <p className="text-sm text-muted-foreground">No completed sessions this semester.</p>
+            <p className="text-sm text-muted-foreground mt-auto">No completed sessions this semester.</p>
           )}
         </div>
       </div>

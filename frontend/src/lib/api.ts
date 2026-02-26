@@ -1,7 +1,14 @@
-const API_URL = import.meta.env.VITE_API_URL ?? (typeof window !== "undefined" ? "" : "http://localhost:3000");
+const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
+
+function withCredentials(init: RequestInit = {}): RequestInit {
+  return {
+    ...init,
+    credentials: "include",
+  };
+}
 
 export interface LoginResponse {
-  token: string;
+  token?: string;
   user: {
     id: number;
     email: string;
@@ -21,11 +28,14 @@ export async function loginAPI(
   email: string,
   password: string
 ): Promise<LoginResponse> {
-  const response = await fetch(`${API_URL}/api/v1/auth/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  });
+  const response = await fetch(
+    `${API_URL}/api/v1/auth/login`,
+    withCredentials({
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    })
+  );
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({
@@ -35,6 +45,34 @@ export async function loginAPI(
   }
 
   return response.json();
+}
+
+export async function getCurrentUserAPI(): Promise<{ user: LoginResponse["user"] }> {
+  const response = await fetch(
+    `${API_URL}/api/v1/auth/me`,
+    withCredentials({
+      method: "GET",
+    })
+  );
+
+  if (!response.ok) {
+    await parseApiError(response, "Failed to load current user");
+  }
+
+  return response.json();
+}
+
+export async function logoutAPI(): Promise<void> {
+  const response = await fetch(
+    `${API_URL}/api/v1/auth/logout`,
+    withCredentials({
+      method: "POST",
+    })
+  );
+
+  if (!response.ok) {
+    await parseApiError(response, "Failed to log out");
+  }
 }
 
 export interface TutorApiUser {
@@ -68,12 +106,9 @@ export interface UpdateTutorPayload {
   hourlyLimit: number;
 }
 
-function getAuthHeaders(): HeadersInit {
-  const token = localStorage.getItem("authToken");
-
+function getJsonHeaders(): HeadersInit {
   return {
     "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 }
 
@@ -91,10 +126,12 @@ async function parseApiError(response: Response, fallbackMessage: string) {
 }
 
 export async function getTutorsAPI(): Promise<TutorApiRecord[]> {
-  const response = await fetch(`${API_URL}/api/v1/tutors`, {
-    method: "GET",
-    headers: getAuthHeaders(),
-  });
+  const response = await fetch(
+    `${API_URL}/api/v1/tutors`,
+    withCredentials({
+      method: "GET",
+    })
+  );
 
   if (!response.ok) {
     await parseApiError(response, "Failed to load tutors");
@@ -106,11 +143,14 @@ export async function getTutorsAPI(): Promise<TutorApiRecord[]> {
 export async function createTutorAPI(
   payload: CreateTutorPayload
 ): Promise<TutorApiRecord> {
-  const response = await fetch(`${API_URL}/api/v1/tutors`, {
-    method: "POST",
-    headers: getAuthHeaders(),
-    body: JSON.stringify(payload),
-  });
+  const response = await fetch(
+    `${API_URL}/api/v1/tutors`,
+    withCredentials({
+      method: "POST",
+      headers: getJsonHeaders(),
+      body: JSON.stringify(payload),
+    })
+  );
 
   if (!response.ok) {
     await parseApiError(response, "Failed to create tutor");
@@ -123,11 +163,14 @@ export async function updateTutorAPI(
   tutorId: number,
   payload: UpdateTutorPayload
 ): Promise<TutorApiRecord> {
-  const response = await fetch(`${API_URL}/api/v1/tutors/${tutorId}`, {
-    method: "PUT",
-    headers: getAuthHeaders(),
-    body: JSON.stringify(payload),
-  });
+  const response = await fetch(
+    `${API_URL}/api/v1/tutors/${tutorId}`,
+    withCredentials({
+      method: "PUT",
+      headers: getJsonHeaders(),
+      body: JSON.stringify(payload),
+    })
+  );
 
   if (!response.ok) {
     await parseApiError(response, "Failed to update tutor");
@@ -140,11 +183,14 @@ export async function updateTutorActiveAPI(
   tutorId: number,
   active: boolean
 ): Promise<TutorApiRecord> {
-  const response = await fetch(`${API_URL}/api/v1/tutors/${tutorId}/active`, {
-    method: "PATCH",
-    headers: getAuthHeaders(),
-    body: JSON.stringify({ active }),
-  });
+  const response = await fetch(
+    `${API_URL}/api/v1/tutors/${tutorId}/active`,
+    withCredentials({
+      method: "PATCH",
+      headers: getJsonHeaders(),
+      body: JSON.stringify({ active }),
+    })
+  );
 
   if (!response.ok) {
     await parseApiError(response, "Failed to update tutor status");
@@ -153,11 +199,46 @@ export async function updateTutorActiveAPI(
   return response.json();
 }
 
+export async function getTutorAssignedStudentsAPI(
+  tutorId: number
+): Promise<
+  Array<{
+    student: {
+      id: number;
+      firstName: string;
+      lastName: string;
+      name: string;
+      email: string;
+    };
+    course: {
+      id: number;
+      code: string;
+      title: string;
+    };
+    currentSessionStatus: string | null;
+  }>
+> {
+  const response = await fetch(
+    `${API_URL}/api/v1/tutors/${tutorId}/students`,
+    withCredentials({
+      method: "GET",
+    })
+  );
+
+  if (!response.ok) {
+    await parseApiError(response, "Failed to load assigned students");
+  }
+
+  return response.json();
+}
+
 export async function getAssignableTutorsAPI(): Promise<TutorApiRecord[]> {
-  const response = await fetch(`${API_URL}/api/v1/tutors/assignable`, {
-    method: "GET",
-    headers: getAuthHeaders(),
-  });
+  const response = await fetch(
+    `${API_URL}/api/v1/tutors/assignable`,
+    withCredentials({
+      method: "GET",
+    })
+  );
   if (!response.ok) await parseApiError(response, "Failed to load tutors");
   return response.json();
 }
@@ -171,10 +252,12 @@ export interface CourseApiItem {
 }
 
 export async function getCoursesAPI(): Promise<CourseApiItem[]> {
-  const response = await fetch(`${API_URL}/api/v1/courses`, {
-    method: "GET",
-    headers: getAuthHeaders(),
-  });
+  const response = await fetch(
+    `${API_URL}/api/v1/courses`,
+    withCredentials({
+      method: "GET",
+    })
+  );
 
   if (!response.ok) {
     await parseApiError(response, "Failed to load courses");
@@ -239,7 +322,12 @@ export async function getRequestsAPI(
    if (params?.userId != null) search.set("userId", String(params.userId));
   const qs = search.toString();
   const url = `${API_URL}/api/v1/requests${qs ? `?${qs}` : ""}`;
-  const response = await fetch(url, { method: "GET", headers: getAuthHeaders() });
+  const response = await fetch(
+    url,
+    withCredentials({
+      method: "GET",
+    })
+  );
   if (!response.ok) await parseApiError(response, "Failed to load requests");
   return response.json();
 }
@@ -252,16 +340,19 @@ export interface CreateRequestPayload {
 }
 
 export async function createRequestAPI(payload: CreateRequestPayload): Promise<RequestItem> {
-  const response = await fetch(`${API_URL}/api/v1/requests`, {
-    method: "POST",
-    headers: getAuthHeaders(),
-    body: JSON.stringify({
-      userId: payload.userId,
-      courseId: payload.courseId,
-      ...(payload.description ? { description: payload.description } : {}),
-      ...(payload.requestedTutorId != null ? { requestedTutorId: payload.requestedTutorId } : {}),
-    }),
-  });
+  const response = await fetch(
+    `${API_URL}/api/v1/requests`,
+    withCredentials({
+      method: "POST",
+      headers: getJsonHeaders(),
+      body: JSON.stringify({
+        userId: payload.userId,
+        courseId: payload.courseId,
+        ...(payload.description ? { description: payload.description } : {}),
+        ...(payload.requestedTutorId != null ? { requestedTutorId: payload.requestedTutorId } : {}),
+      }),
+    })
+  );
   if (!response.ok) await parseApiError(response, "Failed to submit request");
   return response.json();
 }
@@ -273,21 +364,27 @@ export interface PatchRequestPayload {
 }
 
 export async function patchRequestAPI(id: number, payload: PatchRequestPayload): Promise<RequestItem> {
-  const response = await fetch(`${API_URL}/api/v1/requests/${id}`, {
-    method: "PATCH",
-    headers: getAuthHeaders(),
-    body: JSON.stringify(payload),
-  });
+  const response = await fetch(
+    `${API_URL}/api/v1/requests/${id}`,
+    withCredentials({
+      method: "PATCH",
+      headers: getJsonHeaders(),
+      body: JSON.stringify(payload),
+    })
+  );
   if (!response.ok) await parseApiError(response, "Failed to update request");
   return response.json();
 }
 
 export async function patchRequestTutorResponseAPI(id: number, accepted: boolean): Promise<RequestItem> {
-  const response = await fetch(`${API_URL}/api/v1/requests/${id}/tutor-response`, {
-    method: "PATCH",
-    headers: getAuthHeaders(),
-    body: JSON.stringify({ accepted }),
-  });
+  const response = await fetch(
+    `${API_URL}/api/v1/requests/${id}/tutor-response`,
+    withCredentials({
+      method: "PATCH",
+      headers: getJsonHeaders(),
+      body: JSON.stringify({ accepted }),
+    })
+  );
   if (!response.ok) await parseApiError(response, "Failed to respond");
   return response.json();
 }

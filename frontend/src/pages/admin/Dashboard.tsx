@@ -1,116 +1,92 @@
-import { Link } from "react-router-dom";
-import { useEffect, useState } from "react";
-import { StatCard } from "@/components/ui/StatCard";
-import { StatusBadge } from "@/components/ui/StatusBadge";
-import {
-  Calendar,
-  FileText,
-  Users,
-  BookOpen,
-  Clock,
-  TrendingUp,
-} from "lucide-react";
-import {
-  mockSessionMetrics,
-  mockTutoringRequests,
-  mockTutors,
-  mockCourses,
-  getActiveTutors,
-  getSessionsWithDetails,
-} from "@/data/mockData";
-import { getRequestsAPI, mapRequestItemToWithDetails } from "@/lib/api";
-import type { TutoringRequestWithDetails } from "@/types";
+import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { StatCard } from '@/components/ui/StatCard';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { Calendar, FileText, Users, BookOpen, Clock, TrendingUp } from 'lucide-react';
+import { mockSessionMetrics, mockTutoringRequests, mockTutors, mockCourses, getActiveTutors, getSessionsWithDetails } from '@/data/mockData';
+import { getRequestsAPI, mapRequestItemToWithDetails } from '@/lib/api';
+import type { TutoringRequestWithDetails } from '@/types';
 
 type CourseRequestStat = {
-  courseId: number;
-  code: string;
-  title: string;
-  totalRequests: number;
-  pendingRequests: number;
+    courseId: number;
+    code: string;
+    title: string;
+    totalRequests: number;
+    pendingRequests: number;
 };
 
 export default function AdminDashboard() {
-  const latestMetrics = mockSessionMetrics[0];
-  const [pendingRequests, setPendingRequests] = useState<TutoringRequestWithDetails[]>([]);
-  const [pendingLoading, setPendingLoading] = useState(true);
-  const [pendingError, setPendingError] = useState<string | null>(null);
-  const [requestsByCourse, setRequestsByCourse] = useState<CourseRequestStat[]>([]);
-  const [requestsByCourseLoading, setRequestsByCourseLoading] = useState(true);
-  const [requestsByCourseError, setRequestsByCourseError] = useState<string | null>(null);
+    const latestMetrics = mockSessionMetrics[0];
+    const [pendingRequests, setPendingRequests] = useState<TutoringRequestWithDetails[]>([]);
+    const [pendingLoading, setPendingLoading] = useState(true);
+    const [pendingError, setPendingError] = useState<string | null>(null);
+    const [requestsByCourse, setRequestsByCourse] = useState<CourseRequestStat[]>([]);
+    const [requestsByCourseLoading, setRequestsByCourseLoading] = useState(true);
+    const [requestsByCourseError, setRequestsByCourseError] = useState<string | null>(null);
 
-  const activeTutors = getActiveTutors();
-  const upcomingSessions = getSessionsWithDetails().filter(
-    (s) => s.status === "scheduled"
-  );
+    const activeTutors = getActiveTutors();
+    const upcomingSessions = getSessionsWithDetails().filter((s) => s.status === 'scheduled');
 
-  useEffect(() => {
-    let cancelled = false;
+    useEffect(() => {
+        let cancelled = false;
 
-    async function load() {
-      setPendingLoading(true);
-      setRequestsByCourseLoading(true);
-      setPendingError(null);
-      setRequestsByCourseError(null);
+        async function load() {
+            setPendingLoading(true);
+            setRequestsByCourseLoading(true);
+            setPendingError(null);
+            setRequestsByCourseError(null);
 
-      try {
-        const { items } = await getRequestsAPI();
-        if (cancelled) return;
-        const mapped = items.map(mapRequestItemToWithDetails);
+            try {
+                const { items } = await getRequestsAPI();
+                if (cancelled) return;
+                const mapped = items.map(mapRequestItemToWithDetails);
 
-        const pending = mapped.filter((r) => r.status === "pending");
-        setPendingRequests(pending);
+                const pending = mapped.filter((r) => r.status === 'pending');
+                setPendingRequests(pending);
 
-        const byCourseMap = mapped.reduce<Record<number, CourseRequestStat>>(
-          (acc, req) => {
-            const course = req.course;
-            const existing = acc[course.id];
-            if (!existing) {
-              acc[course.id] = {
-                courseId: course.id,
-                code: course.code,
-                title: course.title,
-                totalRequests: 1,
-                pendingRequests: req.status === "pending" ? 1 : 0,
-              };
-              return acc;
+                const byCourseMap = mapped.reduce<Record<number, CourseRequestStat>>((acc, req) => {
+                    const course = req.course;
+                    const existing = acc[course.id];
+                    if (!existing) {
+                        acc[course.id] = {
+                            courseId: course.id,
+                            code: course.code,
+                            title: course.title,
+                            totalRequests: 1,
+                            pendingRequests: req.status === 'pending' ? 1 : 0
+                        };
+                        return acc;
+                    }
+                    existing.totalRequests += 1;
+                    if (req.status === 'pending') existing.pendingRequests += 1;
+                    return acc;
+                }, {});
+
+                setRequestsByCourse(Object.values(byCourseMap).sort((a, b) => b.totalRequests - a.totalRequests));
+            } catch (e) {
+                if (cancelled) return;
+                const message = e instanceof Error ? e.message : 'Failed to load requests';
+                setPendingError(message);
+                setRequestsByCourseError(message);
+            } finally {
+                if (!cancelled) {
+                    setPendingLoading(false);
+                    setRequestsByCourseLoading(false);
+                }
             }
-            existing.totalRequests += 1;
-            if (req.status === "pending") existing.pendingRequests += 1;
-            return acc;
-          },
-          {}
-        );
-
-        setRequestsByCourse(
-          Object.values(byCourseMap).sort(
-            (a, b) => b.totalRequests - a.totalRequests
-          )
-        );
-      } catch (e) {
-        if (cancelled) return;
-        const message =
-          e instanceof Error ? e.message : "Failed to load requests";
-        setPendingError(message);
-        setRequestsByCourseError(message);
-      } finally {
-        if (!cancelled) {
-          setPendingLoading(false);
-          setRequestsByCourseLoading(false);
         }
-      }
-    }
 
-    load();
+        load();
 
     return () => {
       cancelled = true;
     };
   }, []);
- 
+
    return (
      <div className="animate-fade-in">
        <h1 className="page-header">Admin Dashboard</h1>
- 
+
        {/* Metrics Cards */}
        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
          <StatCard
@@ -140,7 +116,7 @@ export default function AdminDashboard() {
            linkTo="/admin/classes"
          />
        </div>
- 
+
        {/* Two Column Layout */}
        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
          {/* Pending Requests */}
@@ -193,7 +169,7 @@ export default function AdminDashboard() {
             )}
            </div>
          </div>
- 
+
          {/* Active Tutors */}
          <div className="card-base">
            <div className="p-4 border-b border-border flex items-center justify-between">
@@ -207,7 +183,7 @@ export default function AdminDashboard() {
            </div>
            <div className="divide-y divide-border">
              {activeTutors.length === 0 ? (
-               <div className="p-6 text-center text-muted-foreground">
+               <div className="p-6 flex items-center justify-center text-center text-muted-foreground">
                  No active tutors
                </div>
              ) : (
@@ -241,7 +217,7 @@ export default function AdminDashboard() {
              )}
            </div>
          </div>
- 
+
         {/* Upcoming Sessions */}
         <div className="card-base">
           <div className="p-4 border-b border-border flex items-center justify-between">

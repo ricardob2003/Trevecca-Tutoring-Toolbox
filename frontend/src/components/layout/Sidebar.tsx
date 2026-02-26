@@ -1,151 +1,167 @@
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import { LayoutDashboard, FileText, Users, BookOpen, GraduationCap, Home, Search, Calendar, LogOut, ChevronLeft, Menu, BarChart3 } from "lucide-react";
-import { useState } from "react";
+import {
+  LayoutDashboard,
+  FileText,
+  Users,
+  BookOpen,
+  GraduationCap,
+  Home,
+  Search,
+  Calendar,
+  LogOut,
+  ChevronLeft,
+  Menu,
+  X,
+  BarChart3,
+} from "lucide-react";
+import type { ReactNode } from "react";
 import tnuLogo from "@/Images/TNU-Logo.jpg";
+
 interface NavItem {
   label: string;
   path: string;
-  icon: React.ReactNode;
+  icon: ReactNode;
 }
-export function Sidebar() {
-  const {
-    currentUser,
-    logout
-  } = useAuth();
+
+interface SidebarProps {
+  collapsed: boolean;
+  mobileOpen: boolean;
+  onToggleCollapsed: () => void;
+  onCloseMobile: () => void;
+}
+
+export function Sidebar({
+  collapsed,
+  mobileOpen,
+  onToggleCollapsed,
+  onCloseMobile,
+}: SidebarProps) {
+  const { currentUser, logout } = useAuth();
   const location = useLocation();
-  const [collapsed, setCollapsed] = useState(false);
+
   if (!currentUser) return null;
-  const {
-    isAdmin,
-    isTutor
-  } = currentUser;
-  const adminLinks: NavItem[] = [{
-    label: "Dashboard",
-    path: "/admin/dashboard",
-    icon: <LayoutDashboard size={20} />
-  }, {
-    label: "Requests",
-    path: "/admin/requests",
-    icon: <FileText size={20} />
-  }, {
-    label: "Tutors",
-    path: "/admin/tutors",
-    icon: <Users size={20} />
-  }, {
-    label: "Classes",
-    path: "/admin/classes",
-    icon: <BookOpen size={20} />
-  }, {
-    label: "Students",
-    path: "/admin/students",
-    icon: <GraduationCap size={20} />
-  }, {
-    label: "Analytics",
-    path: "/admin/analytics",
-    icon: <BarChart3 size={20} />
-  }];
-  const studentLinks: NavItem[] = [{
-    label: "Home",
-    path: "/student/home",
-    icon: <Home size={20} />
-  }, {
-    label: "My Tutors",
-    path: "/student/mytutors",
-    icon: <Users size={20} />
-  }, {
-    label: "Request Tutor",
-    path: "/student/request",
-    icon: <FileText size={20} />
-  }, {
-    label: "Browse Classes",
-    path: "/student/classes",
-    icon: <Search size={20} />
-  }];
-  const tutorLinks: NavItem[] = [{
-    label: "Tutor Dashboard",
-    path: "/tutor/dashboard",
-    icon: <Calendar size={20} />
-  }, {
-    label: "My Students",
-    path: "/tutor/students",
-    icon: <Users size={20} />
-  }];
-  const getNavLinks = (): NavItem[] => {
-    if (isAdmin) return adminLinks;
-    const links = [...studentLinks];
-    if (isTutor) {
-      links.push(...tutorLinks);
-    }
-    return links;
-  };
-  const navLinks = getNavLinks();
+
+  const { isAdmin, isTutor } = currentUser;
+
+  const adminLinks: NavItem[] = [
+    { label: "Dashboard", path: "/admin/dashboard", icon: <LayoutDashboard size={20} /> },
+    { label: "Requests", path: "/admin/requests", icon: <FileText size={20} /> },
+    { label: "Tutors", path: "/admin/tutors", icon: <Users size={20} /> },
+    { label: "Classes", path: "/admin/classes", icon: <BookOpen size={20} /> },
+    { label: "Students", path: "/admin/students", icon: <GraduationCap size={20} /> },
+    { label: "Analytics", path: "/admin/analytics", icon: <BarChart3 size={20} /> },
+  ];
+
+  const studentLinks: NavItem[] = [
+    { label: "Home", path: "/student/home", icon: <Home size={20} /> },
+    { label: "My Tutors", path: "/student/mytutors", icon: <Users size={20} /> },
+    { label: "Request Tutor", path: "/student/request", icon: <FileText size={20} /> },
+    { label: "Browse Classes", path: "/student/classes", icon: <Search size={20} /> },
+  ];
+
+  const tutorLinks: NavItem[] = [
+    { label: "Tutor Dashboard", path: "/tutor/dashboard", icon: <Calendar size={20} /> },
+    { label: "My Students", path: "/tutor/students", icon: <Users size={20} /> },
+  ];
+
+  const navLinks = isAdmin
+    ? adminLinks
+    : [...studentLinks, ...(isTutor ? tutorLinks : [])];
   const isActive = (path: string) => location.pathname === path;
-  return <aside className={`
-         fixed left-0 top-0 h-full bg-sidebar z-40
-         flex flex-col overflow-visible
-         ${collapsed ? "w-16" : "w-52"}
-       `}>
-       {/* Header */}
-       <div className="flex items-center justify-between h-16 px-4 border-b border-sidebar-border bg-[#532c6d] border-none">
-         <div className="flex items-center gap-2">
-           {collapsed ? (
-             <img src={tnuLogo} alt="TNU Logo" className="w-10 h-10 object-contain" />
-           ) : (
-             <>
-               <img src={tnuLogo} alt="TNU Logo" className="h-10 w-auto object-contain" />
-               <span className="font-semibold text-white/80">Tutoring Toolbox</span>
-             </>
-           )}
-         </div>
-         <button onClick={() => setCollapsed(!collapsed)} className="p-2 rounded-md hover:bg-white/10 text-white/80 transition-colors" aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}>
-           {collapsed ? <Menu size={20} /> : <ChevronLeft size={20} />}
-         </button>
-       </div>
 
-       {/* Navigation */}
-       <nav className="flex-1 py-4 px-2 overflow-y-auto bg-[#532c6d] hide-horizontal-scrollbar">
-         <ul className="space-y-1">
-           {navLinks.map(link => <li key={link.path} className="relative">
-               <Link to={link.path} className={`
-                   flex items-center gap-3 px-3 py-2.5 rounded-l-md
-                   transition-colors text-sm font-medium relative
-                   ${isActive(link.path) 
-                     ? "bg-white text-gray-900 -mr-4 pr-7 z-50" 
-                     : "text-white/80 hover:bg-white/10 hover:text-white/80"}
-                 `} title={collapsed ? link.label : undefined}>
-                 {link.icon}
-                 {!collapsed && <span>{link.label}</span>}
-               </Link>
-             </li>)}
-         </ul>
+  return (
+    <>
+      <div
+        className={`fixed inset-0 z-40 bg-black/40 transition-opacity lg:hidden ${
+          mobileOpen ? "opacity-100" : "pointer-events-none opacity-0"
+        }`}
+        onClick={onCloseMobile}
+        aria-hidden
+      />
 
-         {/* Tutor Section Divider */}
-         {!isAdmin && isTutor && !collapsed && <div className="mt-4 pt-4 border-t border-white/20">
-             <p className="px-3 text-xs font-semibold text-white/80 uppercase tracking-wider mb-2">
-               Tutor
-             </p>
-           </div>}
-       </nav>
+      <aside
+        className={`fixed left-0 top-0 z-50 h-dvh bg-sidebar transition-transform duration-200 lg:translate-x-0 ${
+          collapsed ? "w-16" : "w-52"
+        } ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
+      >
+        <div className="flex h-16 items-center justify-between border-b border-sidebar-border bg-[#532c6d] px-4">
+          <div className="flex items-center gap-2">
+            {collapsed ? (
+              <img src={tnuLogo} alt="TNU Logo" className="h-9 w-9 rounded-sm object-contain" />
+            ) : (
+              <>
+                <img src={tnuLogo} alt="TNU Logo" className="h-10 w-auto object-contain" />
+                <span className="font-semibold text-white/90">Tutoring Toolbox</span>
+              </>
+            )}
+          </div>
 
-       {/* User Info & Logout */}
-       <div className="p-4 border-t border-sidebar-border">
-         {!collapsed && <div className="mb-3">
-             <p className="text-sm font-medium text-white/80 truncate">
-               {currentUser.user.first_name} {currentUser.user.last_name}
-             </p>
-             <p className="text-xs text-white/70 truncate">
-               {currentUser.user.email}
-             </p>
-           </div>}
-         <button onClick={logout} className={`
-             flex items-center gap-3 w-full px-3 py-2 rounded-md
-             text-white/80 hover:bg-white/10 hover:text-white/80
-             transition-colors text-sm font-medium
-           `} title={collapsed ? "Logout" : undefined}>
-           <LogOut size={20} />
-           {!collapsed && <span>Logout</span>}
-         </button>
-       </div>
-     </aside>;
+          <div className="flex items-center gap-1">
+            <button
+              onClick={onCloseMobile}
+              className="rounded-md p-2 text-white/80 transition-colors hover:bg-white/10 lg:hidden"
+              aria-label="Close menu"
+            >
+              <X size={18} />
+            </button>
+            <button
+              onClick={onToggleCollapsed}
+              className="hidden rounded-md p-2 text-white/80 transition-colors hover:bg-white/10 lg:inline-flex"
+              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              {collapsed ? <Menu size={20} /> : <ChevronLeft size={20} />}
+            </button>
+          </div>
+        </div>
+
+        <nav className="hide-horizontal-scrollbar flex h-[calc(100dvh-8rem)] flex-col overflow-y-auto bg-[#532c6d] px-2 py-4">
+          <ul className="space-y-1">
+            {navLinks.map((link) => (
+              <li key={link.path}>
+                <Link
+                  to={link.path}
+                  onClick={onCloseMobile}
+                  className={`flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors ${
+                    collapsed ? "justify-center" : ""
+                  } ${
+                    isActive(link.path)
+                      ? "bg-white text-[#532c6d]"
+                      : "text-white/80 hover:bg-white/10 hover:text-white"
+                  }`}
+                  title={collapsed ? link.label : undefined}
+                >
+                  {link.icon}
+                  {!collapsed && <span>{link.label}</span>}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+
+        <div className="border-t border-sidebar-border p-4">
+          {!collapsed && (
+            <div className="mb-3">
+              <p className="truncate text-sm font-medium text-white/90">
+                {currentUser.user.first_name} {currentUser.user.last_name}
+              </p>
+              <p className="truncate text-xs text-white/70">{currentUser.user.email}</p>
+            </div>
+          )}
+
+          <button
+            onClick={() => {
+              onCloseMobile();
+              void logout();
+            }}
+            className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+            title={collapsed ? "Logout" : undefined}
+          >
+            <LogOut size={20} />
+            {!collapsed && <span>Logout</span>}
+          </button>
+        </div>
+      </aside>
+    </>
+  );
 }
