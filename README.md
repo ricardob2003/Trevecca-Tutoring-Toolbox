@@ -113,4 +113,33 @@ GET /api/v1/requests/:id → one request
 POST /api/v1/requests → create
 PATCH /api/v1/requests/:id → update
 DELETE /api/v1/requests/:id → delete
-
+-----------------------------------------------------------------------------------------------------------------------------------------------
+Backend setup
+You need Node.js and PostgreSQL installed.
+In the project, go to the backend folder and create a .env file with your database URL, for example:
+DATABASE_URL="postgresql://USER:PASSWORD@localhost:5432/DATABASE_NAME"
+In a terminal, from the backend folder run:
+npm install
+npx prisma migrate dev
+npx prisma db seed
+npm run dev
+Leave that terminal open; the backend should be running (e.g. on http://localhost:3000).
+3. Frontend setup
+In the frontend folder, create a .env (or .env.local) with:
+VITE_API_URL=http://localhost:3000
+(Use a different URL/port if your backend runs elsewhere.)
+In a new terminal, from the frontend folder run:
+npm install
+npm run dev
+Open the URL it gives you (e.g. http://localhost:5173).
+4. Login (same for all of us locally)
+Admin:
+Email: admin@trevecca.edu
+Password: admin123
+Tutor:
+Email: jsmith@trevecca.edu
+Password: password123
+Student:
+Email: michael.brown@trevecca.edu
+Password: password123
+You can also use emily.davis@trevecca.edu or david.martinez@trevecca.edu with password123 (see seed for roles).

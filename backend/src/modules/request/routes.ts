@@ -52,12 +52,11 @@ const denyBodySchema = z.object({
   declineReason: z.string().trim().min(1).max(2000).nullable().optional(),
 });
 
-function hasRole(request: any, role: string): boolean {
-  // Accept FastifyRequest or compatible object with 'user'
-  const roles = (request.user as { roles?: unknown } | undefined)?.roles;
-  if (!Array.isArray(roles)) return false;
+function hasRole(request: FastifyRequest, role: string): boolean {
+  const user = request.user as { roles?: unknown } | undefined;
+  if (!user || !Array.isArray(user.roles)) return false;
   const target = role.trim().toLowerCase();
-  return roles.some(
+  return user.roles.some(
     (r) => typeof r === "string" && r.trim().toLowerCase() === target
   );
 }
