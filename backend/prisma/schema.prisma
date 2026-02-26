@@ -75,6 +75,7 @@ model TutoringRequest {
   courseId         Int             @map("course_id")
   description      String?
   status           RequestStatus   @default(pending)
+  declineReason    String?         @map("decline_reason")
   createdAt        DateTime        @default(now()) @map("created_at")
   user             User            @relation(fields: [userId], references: [treveccaId])
   requestedTutor   Tutor?          @relation("RequestedTutor", fields: [requestedTutorId], references: [userId])
