@@ -69,6 +69,12 @@ npm --prefix backend run dev
 - `GET /api/v1/auth/microsoft/callback` (placeholder)
 - `POST /api/v1/email/test`
 
+#### Tutor API routes
+- `GET /api/v1/tutors`
+- `POST /api/v1/tutors`
+- `PUT /api/v1/tutors/:id`
+- `PATCH /api/v1/tutors/:id/active`
+
 ## Docker
 
 From repo root:
