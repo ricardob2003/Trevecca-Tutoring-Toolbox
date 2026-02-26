@@ -139,8 +139,8 @@ import {
  
    if (isSuccess) {
      return (
-       <div className="animate-fade-in max-w-2xl mx-auto">
-         <div className="card-base p-8 text-center">
+       <div className="animate-fade-in mx-auto w-full max-w-3xl">
+         <div className="card-base card-stack p-8 text-center">
            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-success/10 flex items-center justify-center">
              <Check size={32} className="text-success" />
            </div>
@@ -177,12 +177,12 @@ import {
    }
  
    return (
-     <div className="animate-fade-in max-w-3xl mx-auto">
-       <h1 className="page-header">Request a Tutor</h1>
+     <div className="animate-fade-in mx-auto w-full max-w-6xl">
+      <h1 className="page-header">Request a Tutor</h1>
  
-       {/* Progress Steps */}
-       <div className="flex items-center gap-2 mb-8">
-         {[1, 2, 3].map((s) => (
+      {/* Progress Steps */}
+      <div className="mb-8 flex flex-wrap items-center gap-2">
+        {[1, 2, 3].map((s) => (
            <div key={s} className="flex items-center">
              <div
                className={`
@@ -213,7 +213,7 @@ import {
  
        {/* Step 1: Select Course */}
        {step === 1 && (
-         <div className="card-base p-6">
+         <div className="card-base card-stack p-6">
            <h2 className="section-header">Which course do you need help with?</h2>
  
            <SearchInput
@@ -230,7 +230,7 @@ import {
           ) : coursesError ? (
             <p className="text-sm text-destructive mt-4">{coursesError}</p>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto">
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-3 max-h-96 overflow-y-auto">
               {filteredCourses.map((course) => {
                 const tutorCount =
                   assignableTutors.filter((t) => {
@@ -281,7 +281,7 @@ import {
  
        {/* Step 2: Select Tutor (Optional) */}
        {step === 2 && selectedCourse && (
-         <div className="card-base p-6">
+         <div className="card-base card-stack p-6">
            <div className="flex items-center gap-4 mb-6">
              <button
                onClick={() => setStep(1)}
@@ -371,7 +371,7 @@ import {
  
        {/* Step 3: Add Details */}
        {step === 3 && selectedCourse && (
-         <div className="card-base p-6">
+         <div className="card-base card-stack p-6">
            <div className="flex items-center gap-4 mb-6">
              <button
                onClick={() => setStep(2)}
@@ -384,7 +384,7 @@ import {
  
            {/* Summary */}
            <div className="p-4 bg-muted rounded-md mb-6">
-             <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                <div>
                  <p className="text-sm text-muted-foreground">Course</p>
                  <p className="font-medium text-foreground">

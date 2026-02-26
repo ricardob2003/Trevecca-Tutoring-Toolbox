@@ -14,12 +14,12 @@
    };
  }
  
- export function StatCard({ title, value, subtitle, icon, linkTo, trend }: StatCardProps) {
-   const content = (
-     <div className={`card-base p-6 ${linkTo ? "card-interactive" : ""}`}>
-       <div className="flex items-start justify-between mb-4">
-         <div>
-           <p className="text-sm font-medium text-muted-foreground">{title}</p>
+export function StatCard({ title, value, subtitle, icon, linkTo, trend }: StatCardProps) {
+  const content = (
+    <div className={`card-stack-between h-full p-6 ${linkTo ? "card-interactive" : "card-base"}`}>
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <p className="text-sm font-medium text-muted-foreground">{title}</p>
            <p className="text-3xl font-bold text-foreground mt-1">{value}</p>
          </div>
          {icon && (

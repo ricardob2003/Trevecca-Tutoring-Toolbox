@@ -194,6 +194,18 @@
      @apply bg-card rounded-lg border border-border shadow-sm;
    }
 
+   .card-stack {
+     @apply flex flex-col;
+   }
+
+   .card-stack-between {
+     @apply flex flex-col justify-between;
+   }
+
+   .card-row {
+     @apply flex items-center;
+   }
+
    .card-interactive {
      @apply card-base hover:shadow-md hover:border-primary/20 transition-all cursor-pointer;
    }
