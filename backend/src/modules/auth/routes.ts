@@ -3,6 +3,7 @@ import { z } from "zod";
 import bcrypt from "bcrypt";
 import { env } from "../../config/env.js";
 
+
 const loginBodySchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),

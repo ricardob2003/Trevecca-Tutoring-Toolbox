@@ -33,9 +33,10 @@
    user_id: number;
    requested_tutor_id: number | null;
    course_id: number;
-   description: string | null; // TODO: Match ERD type exactly if different
-   status: string | null; // "pending" | "approved" | "denied"
-   created_at: string; // timestamp as ISO string
+   description: string | null;
+   status: string | null; // "pending" | "pending_tutor" | "approved" | "denied"
+   decline_reason: string | null;
+   created_at: string;
  }
  
 export interface TutoringSession {
