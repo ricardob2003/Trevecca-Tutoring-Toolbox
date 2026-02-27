@@ -151,6 +151,12 @@ export async function sessionRoutes(app: FastifyInstance) {
                 return reply.code(404).send({message: "Request not found"});
             }
             //Only approved requests can create sessions
+            if (requestRow.status !== "approved") {
+                return reply.code(400).send({
+                    message: "Session can only be created for approved requests",
+                });
+            }
+
             if (requestRow.requestedTutorId !== me) {
                 return reply.code(403).send({
                     message: "Only assigned tutor can create session",
@@ -172,7 +178,7 @@ export async function sessionRoutes(app: FastifyInstance) {
 
             //Fetch Tutor Record (for hourly Limit)
             const tutor = await app.prisma.tutor.findUnique({
-                where:{ id: me},
+                where:{ userId: me},
             });
 
             if(!tutor){
@@ -198,10 +204,10 @@ export async function sessionRoutes(app: FastifyInstance) {
                         tutorId:me,
                         startTime:{
                             gte: weekStart,
-                            It: weekEnd,
+                            lt: weekEnd,
                         },
                         status:{
-                            in: ["sceduled", "completed"],
+                            in: ["scheduled", "completed"],
                         },
                     },
                 });
@@ -365,10 +371,15 @@ export async function sessionRoutes(app: FastifyInstance) {
                 where: {id},
                 data:{
                     attended: bodyParsed.data.attended,
-                    notes:bodyParsed.data.notes,
+                    notes: bodyParsed.data.notes,
                     status: "completed",
                 },
             });
+
+            return reply.code(200).send(updated);
         }
     );
 }
+
+
+
