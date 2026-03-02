@@ -91,7 +91,7 @@ export async function sessionRoutes(app: FastifyInstance) {
             const where: any = {};
 
             //Applies optional filters if provided
-            if(parsed.data.tutor_id) where.tutorID = parsed.data.tutor_id;
+            if(parsed.data.tutor_id) where.tutorId = parsed.data.tutor_id;
             if(parsed.data.user_id) where.userID = parsed.data.user_id;
 
             //if not admin, only show sessoins where user is tutor or student
@@ -289,7 +289,7 @@ export async function sessionRoutes(app: FastifyInstance) {
             }
 
             // ONly tutor can reschedule
-            if (session.tutorID !== me) {
+            if (session.tutorId !== me) {
                 return reply.code(403).send({
                     message: "Only tutor can reschedule",
                 });

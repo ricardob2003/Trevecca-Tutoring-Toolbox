@@ -10,8 +10,7 @@ import {
   Plus,
   ArrowRight,
 } from "lucide-react";
-import { mockTutoringSessions, mockCourses, getTutorWithUser } from "@/data/mockData";
-import { getRequestsAPI, mapRequestItemToWithDetails } from "@/lib/api";
+import { getRequestsAPI, mapRequestItemToWithDetails, getStudentSessionsAPI, StudentSessionItem } from "@/lib/api";
 import type { TutoringRequestWithDetails } from "@/types";
 import treveccaLogo from "@/Images/TrevLogo.webp";
 
@@ -35,6 +34,9 @@ export default function StudentHome() {
   const [requestsLoading, setRequestsLoading] = useState(true);
   const [requestsError, setRequestsError] = useState<string | null>(null);
   const [requestsByCourse, setRequestsByCourse] = useState<CourseRequestStat[]>([]);
+  const [sessions, setSessions] = useState<StudentSessionItem[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(true);
+  const [sessionsError, setSessionsError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -93,11 +95,39 @@ export default function StudentHome() {
     };
   }, [userId]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadSessions() {
+      setSessionsLoading(true);
+      setSessionsError(null);
+      try {
+        const items = await getStudentSessionsAPI(userId);
+        if (cancelled) return;
+        setSessions(items);
+      } catch (e) {
+        if (cancelled) return;
+        setSessionsError(
+          e instanceof Error ? e.message : "Failed to load your sessions"
+        );
+      } finally {
+        if (!cancelled) {
+          setSessionsLoading(false);
+        }
+      }
+    }
+
+    loadSessions();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
   const pendingRequests = myRequests.filter((r) => r.status === "pending");
- 
-   // Get student's sessions
-   const mySessions = mockTutoringSessions.filter((s) => s.user_id === userId);
-   const upcomingSessions = mySessions.filter((s) => s.status === "scheduled");
+  const mySessions = sessions;
+  const upcomingSessions = mySessions.filter((s) => s.status === "scheduled");
+  const completedSessions = mySessions.filter((s) => s.status === "completed");
  
    return (
      <div className="animate-fade-in">
@@ -172,12 +202,12 @@ export default function StudentHome() {
          />
          <StatCard
            title="Upcoming Sessions"
-           value={upcomingSessions.length}
+          value={sessionsLoading ? "…" : upcomingSessions.length}
            icon={<Calendar size={24} />}
          />
          <StatCard
            title="Completed Sessions"
-           value={mySessions.filter((s) => s.status === "completed").length}
+          value={sessionsLoading ? "…" : completedSessions.length}
            icon={<BookOpen size={24} />}
          />
        </div>
@@ -248,38 +278,45 @@ export default function StudentHome() {
             <h2 className="font-semibold text-foreground">Upcoming Sessions</h2>
           </div>
           <div className="divide-y divide-border">
-            {upcomingSessions.length === 0 ? (
-              <div className="p-6 text-center">
-                <p className="text-muted-foreground">
-                  No upcoming sessions scheduled.
-                </p>
-              </div>
-            ) : (
-              upcomingSessions.map((session) => {
-                const course = mockCourses.find((c) => c.id === session.course_id);
-                const tutor = getTutorWithUser(session.tutor_id);
-                return (
-                  <div key={session.id} className="p-4 hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-accent/10">
-                        <Calendar size={20} className="text-accent" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium text-foreground">
-                          {course?.code} with {tutor?.user.first_name}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {session.start_time
-                            ? new Date(session.start_time).toLocaleString()
-                            : "Time TBD"}
-                        </p>
-                      </div>
-                      <StatusBadge status={session.status || "scheduled"} />
-                    </div>
+          {sessionsLoading ? (
+            <div className="p-6 text-center text-muted-foreground">
+              Loading your sessions...
+            </div>
+          ) : sessionsError ? (
+            <div className="p-6 text-center text-destructive text-sm">
+              {sessionsError}
+            </div>
+          ) : upcomingSessions.length === 0 ? (
+            <div className="p-6 text-center">
+              <p className="text-muted-foreground">
+                No upcoming sessions scheduled.
+              </p>
+            </div>
+          ) : (
+            upcomingSessions.map((session) => (
+              <div
+                key={session.id}
+                className="p-4 hover:bg-muted/50 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-accent/10">
+                    <Calendar size={20} className="text-accent" />
                   </div>
-                );
-              })
-            )}
+                  <div className="flex-1">
+                    <p className="font-medium text-foreground">
+                      {session.courseCode} with {session.tutorName}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {session.startTime
+                        ? new Date(session.startTime).toLocaleString()
+                        : "Time TBD"}
+                    </p>
+                  </div>
+                  <StatusBadge status={session.status || "scheduled"} />
+                </div>
+              </div>
+            ))
+          )}
           </div>
         </div>
       </div>
