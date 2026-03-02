@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -6,13 +6,8 @@ import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  mockTutoringSessions,
-  mockCourses,
-  getTutorWithUser,
-  addSessionRequest,
-} from "@/data/mockData";
-import type { TutorWithUser, Course } from "@/types";
+import { getRequestsAPI, mapRequestItemToWithDetails } from "@/lib/api";
+import type { TutorWithUser, Course, TutoringRequestWithDetails } from "@/types";
 import { Users, BookOpen, Mail, Calendar } from "lucide-react";
 import { toast } from "sonner";
 
@@ -23,6 +18,10 @@ interface TutorWithDetails extends TutorWithUser {
 export default function MyTutors() {
   const { currentUser } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
+  const [approvedRequests, setApprovedRequests] = useState<TutoringRequestWithDetails[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const [schedulingTutor, setSchedulingTutor] = useState<TutorWithDetails | null>(null);
   const [scheduleCourseId, setScheduleCourseId] = useState<number | "">("");
   const [scheduleDate, setScheduleDate] = useState("");
@@ -34,33 +33,57 @@ export default function MyTutors() {
 
   const userId = currentUser.user.id;
 
-  // Get all sessions for this student
-  const mySessions = mockTutoringSessions.filter((s) => s.user_id === userId);
+  useEffect(() => {
+    let cancelled = false;
 
-  // Get unique tutors from sessions
-  const uniqueTutorIds = [...new Set(mySessions.map((s) => s.tutor_id))];
-  const tutorsWithDetails: TutorWithDetails[] = uniqueTutorIds
-    .map((tutorId) => {
-      const tutor = getTutorWithUser(tutorId);
-      if (!tutor) return null;
+    async function loadApprovedRequests() {
+      setIsLoading(true);
+      setError(null);
 
-      // Get sessions with this tutor
-      const tutorSessions = mySessions.filter((s) => s.tutor_id === tutorId);
+      try {
+        const { items } = await getRequestsAPI({ userId, status: "approved" });
+        if (cancelled) return;
+        setApprovedRequests(items.map(mapRequestItemToWithDetails));
+      } catch (err) {
+        if (cancelled) return;
+        setError(err instanceof Error ? err.message : "Failed to load tutors");
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    }
 
-      // Get unique courses
-      const courseIds = [...new Set(tutorSessions.map((s) => s.course_id))];
-      const courses = courseIds
-        .map((id) => mockCourses.find((c) => c.id === id))
-        .filter(Boolean) as Course[];
+    void loadApprovedRequests();
 
-      return {
-        ...tutor,
-        courses,
-      };
-    })
-    .filter(Boolean) as TutorWithDetails[];
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
 
-  // Filter tutors based on search query
+  const tutorsWithDetails: TutorWithDetails[] = useMemo(() => {
+    const byTutor = new Map<number, TutorWithDetails>();
+
+    for (const request of approvedRequests) {
+      if (!request.requested_tutor) continue;
+
+      const tutor = request.requested_tutor;
+      const existing = byTutor.get(tutor.user_id);
+
+      if (!existing) {
+        byTutor.set(tutor.user_id, {
+          ...tutor,
+          courses: [request.course],
+        });
+        continue;
+      }
+
+      if (!existing.courses.some((course) => course.id === request.course.id)) {
+        existing.courses.push(request.course);
+      }
+    }
+
+    return Array.from(byTutor.values());
+  }, [approvedRequests]);
+
   const filteredTutors = tutorsWithDetails.filter((tutor) => {
     const searchLower = searchQuery.toLowerCase();
     return (
@@ -94,25 +117,20 @@ export default function MyTutors() {
 
   const handleScheduleMeeting = async () => {
     if (!currentUser || !schedulingTutor) return;
-    const courseId = typeof scheduleCourseId === "number" ? scheduleCourseId : schedulingTutor.courses[0]?.id;
+    const courseId =
+      typeof scheduleCourseId === "number"
+        ? scheduleCourseId
+        : schedulingTutor.courses[0]?.id;
+
     if (!courseId || !scheduleDate || !scheduleTime) {
       toast.error("Please select a course, date, and time.");
       return;
     }
+
     setIsSubmitting(true);
-    const startTime = new Date(`${scheduleDate}T${scheduleTime}`).toISOString();
-    const endTime = new Date(new Date(startTime).getTime() + 60 * 60 * 1000).toISOString();
     await new Promise((r) => setTimeout(r, 800));
-    addSessionRequest(
-      schedulingTutor.user_id,
-      currentUser.user.id,
-      courseId,
-      startTime,
-      endTime,
-      scheduleNotes || null
-    );
     setIsSubmitting(false);
-    toast.success("Meeting request sent! The tutor will confirm the session.");
+    toast.success("Meeting request placeholder sent. Session API integration is pending.");
     closeScheduleModal();
   };
 
@@ -120,7 +138,6 @@ export default function MyTutors() {
     <div className="animate-fade-in">
       <h1 className="page-header">My Tutors</h1>
 
-      {/* Search */}
       {tutorsWithDetails.length > 0 && (
         <div className="card-base p-4 mb-6">
           <SearchInput
@@ -132,18 +149,19 @@ export default function MyTutors() {
         </div>
       )}
 
-      {/* Tutors List */}
-      {filteredTutors.length === 0 ? (
+      {isLoading ? (
+        <div className="card-base p-6 text-center text-muted-foreground">
+          Loading approved tutor assignments...
+        </div>
+      ) : error ? (
+        <div className="card-base p-6 text-center text-destructive text-sm">{error}</div>
+      ) : filteredTutors.length === 0 ? (
         <EmptyState
           icon={<Users size={40} />}
-          title={
-            tutorsWithDetails.length === 0
-              ? "No tutors yet"
-              : "No tutors found"
-          }
+          title={tutorsWithDetails.length === 0 ? "No tutors yet" : "No tutors found"}
           description={
             tutorsWithDetails.length === 0
-              ? "You haven't been matched with any tutors yet. Request tutoring to get started!"
+              ? "You have no approved tutor requests yet."
               : "Try adjusting your search criteria."
           }
         />
@@ -151,7 +169,6 @@ export default function MyTutors() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {filteredTutors.map((tutor) => (
             <div key={tutor.user_id} className="card-base p-6">
-              {/* Tutor Header */}
               <div className="flex items-start gap-4 mb-4">
                 <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                   <span className="text-xl font-medium text-primary">
@@ -165,19 +182,16 @@ export default function MyTutors() {
                   </h3>
                   <div className="flex items-center gap-2 mt-1">
                     <Mail size={14} className="text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">
-                      {tutor.user.email}
-                    </p>
+                    <p className="text-sm text-muted-foreground">{tutor.user.email}</p>
                   </div>
                 </div>
               </div>
 
-              {/* Courses */}
               <div className="mb-4">
                 <div className="flex items-center gap-2 mb-2">
                   <BookOpen size={16} className="text-muted-foreground" />
                   <p className="text-sm font-medium text-foreground">
-                    Courses Teaching ({tutor.courses.length})
+                    Classes Requested ({tutor.courses.length})
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -192,7 +206,6 @@ export default function MyTutors() {
                 </div>
               </div>
 
-              {/* Schedule meeting button */}
               <div className="pt-4 border-t border-border">
                 <button
                   onClick={() => openScheduleModal(tutor)}
@@ -207,7 +220,6 @@ export default function MyTutors() {
         </div>
       )}
 
-      {/* Schedule meeting modal */}
       <Modal
         isOpen={!!schedulingTutor}
         onClose={closeScheduleModal}
@@ -230,7 +242,7 @@ export default function MyTutors() {
               >
                 {schedulingTutor.courses.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.code} – {c.title}
+                    {c.code} - {c.title}
                   </option>
                 ))}
               </select>
@@ -276,7 +288,7 @@ export default function MyTutors() {
                 disabled={isSubmitting || !scheduleDate || !scheduleTime}
                 className="btn-primary"
               >
-                {isSubmitting ? "Sending…" : "Send request"}
+                {isSubmitting ? "Sending..." : "Send request"}
               </button>
             </div>
           </div>
