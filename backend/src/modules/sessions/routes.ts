@@ -92,7 +92,7 @@ export async function sessionRoutes(app: FastifyInstance) {
 
             //Applies optional filters if provided
             if(parsed.data.tutor_id) where.tutorId = parsed.data.tutor_id;
-            if(parsed.data.user_id) where.userID = parsed.data.user_id;
+            if(parsed.data.user_id) where.userId = parsed.data.user_id;
 
             //if not admin, only show sessoins where user is tutor or student
             if (!isAdmin) {
@@ -380,6 +380,7 @@ export async function sessionRoutes(app: FastifyInstance) {
         }
     );
 }
+
 
 
 
