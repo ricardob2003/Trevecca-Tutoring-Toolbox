@@ -467,6 +467,88 @@ export interface StudentSessionItem {
   notes: string | null;
 }
 
+export interface AdminSessionItem {
+  id: number;
+  tutorId: number | null;
+  userId: number | null;
+  requestId: number | null;
+  courseId: number | null;
+  startTime: string | null;
+  endTime: string | null;
+  status: string | null;
+  attended: boolean | null;
+  notes: string | null;
+  tutorName: string;
+  tutorEmail: string | null;
+  studentName: string;
+  studentEmail: string | null;
+  courseCode: string;
+  courseTitle: string;
+}
+
+export interface GetSessionsParams {
+  tutorId?: number;
+  userId?: number;
+  from?: string;
+  to?: string;
+}
+
+function getPersonName(person: any): string {
+  const first = person?.firstName ?? person?.first_name ?? "";
+  const last = person?.lastName ?? person?.last_name ?? "";
+  const full = `${first} ${last}`.trim();
+  return full || "Unknown";
+}
+
+export async function getSessionsAPI(
+  params?: GetSessionsParams
+): Promise<AdminSessionItem[]> {
+  const search = new URLSearchParams();
+  if (params?.tutorId != null) search.set("tutor_id", String(params.tutorId));
+  if (params?.userId != null) search.set("user_id", String(params.userId));
+  if (params?.from) search.set("from", params.from);
+  if (params?.to) search.set("to", params.to);
+  const qs = search.toString();
+  const url = `${API_URL}/api/v1/sessions${qs ? `?${qs}` : ""}`;
+
+  const response = await fetch(
+    url,
+    withCredentials({
+      method: "GET",
+    })
+  );
+
+  if (!response.ok) {
+    await parseApiError(response, "Failed to load sessions");
+  }
+
+  const raw = (await response.json()) as any[];
+  return raw.map((session) => {
+    const tutorUser = session.tutor?.user ?? null;
+    const studentUser = session.user ?? null;
+    const course = session.course ?? null;
+
+    return {
+      id: session.id,
+      tutorId: session.tutorId ?? session.tutor_id ?? null,
+      userId: session.userId ?? session.user_id ?? null,
+      requestId: session.requestId ?? session.request_id ?? null,
+      courseId: session.courseId ?? session.course_id ?? null,
+      startTime: session.startTime ?? session.start_time ?? null,
+      endTime: session.endTime ?? session.end_time ?? null,
+      status: session.status ?? null,
+      attended: session.attended ?? null,
+      notes: session.notes ?? null,
+      tutorName: tutorUser ? getPersonName(tutorUser) : "Unknown",
+      tutorEmail: tutorUser?.email ?? null,
+      studentName: studentUser ? getPersonName(studentUser) : "Unknown",
+      studentEmail: studentUser?.email ?? null,
+      courseCode: course?.code ?? "",
+      courseTitle: course?.title ?? "",
+    };
+  });
+}
+
 export interface GetTutorSessionsParams {
   from?: string;
   to?: string;

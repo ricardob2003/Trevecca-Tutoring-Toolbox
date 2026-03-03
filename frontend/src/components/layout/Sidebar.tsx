@@ -48,6 +48,7 @@ export function Sidebar({
     { label: "Dashboard", path: "/admin/dashboard", icon: <LayoutDashboard size={20} /> },
     { label: "Requests", path: "/admin/requests", icon: <FileText size={20} /> },
     { label: "Tutors", path: "/admin/tutors", icon: <Users size={20} /> },
+    { label: "Sessions", path: "/admin/sessions", icon: <Calendar size={20} /> },
     { label: "Classes", path: "/admin/classes", icon: <BookOpen size={20} /> },
     { label: "Students", path: "/admin/students", icon: <GraduationCap size={20} /> },
     { label: "Analytics", path: "/admin/analytics", icon: <BarChart3 size={20} /> },
