@@ -234,7 +234,7 @@ export default function AdminRequests() {
       key: "actions",
       header: "Actions",
       render: (r: TutoringRequestWithDetails) => {
-        const canApprove = r.status === "pending";
+        const canApprove = r.status === "pending_tutor" && r.requested_tutor != null;
         const canDeny = r.status === "pending" || r.status === "pending_tutor";
         const canReopen = r.status === "denied";
         return (
@@ -260,7 +260,7 @@ export default function AdminRequests() {
                 }}
                 disabled={actionLoadingId === r.id}
                 className="p-1.5 rounded-md bg-success/10 text-success hover:bg-success/20 transition-colors disabled:opacity-50"
-                title="Approve"
+                title="Approve assignment so tutor and student can schedule sessions"
               >
                 <Check size={16} />
               </button>

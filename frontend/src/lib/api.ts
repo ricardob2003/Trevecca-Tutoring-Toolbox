@@ -440,3 +440,143 @@ export function mapRequestItemToWithDetails(
       : null,
   };
 }
+
+// --- Sessions API ---
+export interface SessionItem {
+  id: number;
+  studentName: string;
+  studentId: number;
+  courseCode: string;
+  startTime: string;
+  endTime: string;
+  status: string;
+  attended: boolean | null;
+  notes: string | null;
+}
+
+export interface StudentSessionItem {
+  id: number;
+  tutorId: number | null;
+  tutorName: string;
+  courseCode: string;
+  courseTitle: string;
+  startTime: string;
+  endTime: string;
+  status: string;
+  attended: boolean | null;
+  notes: string | null;
+}
+
+export interface GetTutorSessionsParams {
+  from?: string;
+  to?: string;
+}
+
+export async function getTutorSessionsAPI(
+  tutorId: number,
+  params?: GetTutorSessionsParams
+): Promise<SessionItem[]> {
+  const search = new URLSearchParams();
+  if (params?.from) search.set("from", params.from);
+  if (params?.to) search.set("to", params.to);
+  const qs = search.toString();
+  const url = `${API_URL}/api/v1/tutors/${tutorId}/sessions${qs ? `?${qs}` : ""}`;
+
+  const response = await fetch(
+    url,
+    withCredentials({ method: "GET" })
+  );
+
+  if (!response.ok) {
+    await parseApiError(response, "Failed to load sessions");
+  }
+
+  return response.json();
+}
+
+export async function getStudentSessionsAPI(
+  userId: number
+): Promise<StudentSessionItem[]> {
+  const response = await fetch(
+    `${API_URL}/api/v1/sessions?user_id=${userId}`,
+    withCredentials({ method: "GET" })
+  );
+
+  if (!response.ok) {
+    await parseApiError(response, "Failed to load sessions");
+  }
+
+  const raw = (await response.json()) as any[];
+
+  return raw.map((session) => ({
+    id: session.id,
+    tutorId: session.tutor?.user?.treveccaId ?? session.tutorId ?? null,
+    tutorName: session.tutor?.user
+      ? `${session.tutor.user.firstName} ${session.tutor.user.lastName}`
+      : "Tutor",
+    courseCode: session.course?.code ?? "",
+    courseTitle: session.course?.title ?? "",
+    startTime: session.startTime,
+    endTime: session.endTime,
+    status: session.status,
+    attended: session.attended ?? null,
+    notes: session.notes ?? null,
+  }));
+}
+
+export interface CreateSessionPayload {
+  requestId: number;
+  startTime: string;
+  endTime: string;
+}
+
+export interface CompleteSessionPayload {
+  attended: boolean;
+  notes?: string;
+}
+
+export async function createSessionAPI(
+  payload: CreateSessionPayload
+): Promise<any> {
+  const response = await fetch(
+    `${API_URL}/api/v1/sessions`,
+    withCredentials({
+      method: "POST",
+      headers: getJsonHeaders(),
+      body: JSON.stringify({
+        request_id: payload.requestId,
+        start_time: payload.startTime,
+        end_time: payload.endTime,
+      }),
+    })
+  );
+
+  if (!response.ok) {
+    await parseApiError(response, "Failed to create session");
+  }
+
+  return response.json();
+}
+
+export async function completeSessionAPI(
+  id: number,
+  payload: CompleteSessionPayload
+): Promise<any> {
+  const response = await fetch(
+    `${API_URL}/api/v1/sessions/${id}/complete`,
+    withCredentials({
+      method: "PATCH",
+      headers: getJsonHeaders(),
+      body: JSON.stringify({
+        attended: payload.attended,
+        ...(payload.notes ? { notes: payload.notes } : {}),
+      }),
+    })
+  );
+
+  if (!response.ok) {
+    await parseApiError(response, "Failed to complete session");
+  }
+
+  return response.json();
+}

@@ -53,7 +53,119 @@ export async function tutorRoutes(app: FastifyInstance) {
         
         return reply.code(200).send(tutors); 
     });
+    //GET /API/v1/tutors/:id/sessions
+    //Returns sessions for a tutor (Used for tutor dashboard feed)
+    app.get("/:id/sessions", async (request, reply) => {
 
+         //Validate tutor ID param
+        const parsedParams = tutorIdParamsSchema.safeParse(request.params);
+        if (!parsedParams.success) {
+            return reply.code(400).send({
+                message: "Invalid tutor ID in parameters",
+                issues: parsedParams.error.flatten(),
+            });
+        }
+    
+        const tutorId = parsedParams.data.id;
+    
+       
+         //Validate query params (from / to optional)
+        
+        const dateQuerySchema = z.object({
+            from: z.string().optional(),
+            to: z.string().optional(),
+        });
+    
+        const parsedQuery = dateQuerySchema.safeParse(request.query);
+        if (!parsedQuery.success) {
+            return reply.code(400).send({
+                message: "Invalid date query parameters",
+                issues: parsedQuery.error.flatten(),
+            });
+        }
+    
+         //Ensure tutor exists
+         
+        const existingTutor = await app.prisma.tutor.findUnique({
+            where: { userId: tutorId },
+            select: { userId: true },
+        });
+    
+        if (!existingTutor) {
+            return reply.code(404).send({ message: "Tutor not found" });
+        }
+    
+        /**
+         * We filter by tutorId (which equals userId in your schema)
+         * and optionally by startTime range
+         */
+        const where: any = {
+            tutorId: tutorId,
+        };
+    
+        if (parsedQuery.data.from || parsedQuery.data.to) {
+            where.startTime = {};
+    
+            if (parsedQuery.data.from) {
+                where.startTime.gte = new Date(parsedQuery.data.from);
+            }
+    
+            if (parsedQuery.data.to) {
+                where.startTime.lte = new Date(parsedQuery.data.to);
+            }
+        }
+    
+        /**
+         * Include:
+         * - student (user)
+         * - course
+         * Sort ascending by startTime (required)
+         */
+        const sessions = await app.prisma.tutoringSession.findMany({
+            where,
+            include: {
+                user: {
+                    select: {
+                        treveccaId: true,
+                        firstName: true,
+                        lastName: true,
+                        email: true,
+                    },
+                },
+                course: {
+                    select: {
+                        id: true,
+                        code: true,
+                        title: true,
+                    },
+                },
+            },
+            orderBy: {
+                startTime: "asc",
+            },
+        });
+    
+        /**
+         * Shape response for dashboard
+         * Return only what frontend needs
+         */
+        const result = sessions.map((session: any) => ({
+            id: session.id,
+            studentName: `${session.user.firstName} ${session.user.lastName}`,
+            studentId: session.user.treveccaId,
+            courseCode: session.course.code,
+            startTime: session.startTime,
+            endTime: session.endTime,
+            status: session.status,
+            attended: session.attended,
+            notes: session.notes,
+        }));
+    
+        return reply.code(200).send(result);
+    });
+
+
+    
     app.get("/assignable", async (request, reply) => {
         const tutors = await app.prisma.tutor.findMany({
             where: {active: true},

@@ -9,6 +9,7 @@ import { createEmailService } from "./modules/email/email.service.js";
 import { tutorRoutes } from "./modules/tutor/routes.js";
 import { requestRoutes } from "./modules/request/routes.js";
 import { coursesRoutes } from "./modules/courses/routes.js";
+import { sessionRoutes } from "./modules/sessions/routes.js"; 
 
 export async function buildApp() {
   const app = Fastify({
@@ -32,6 +33,7 @@ export async function buildApp() {
   await app.register(tutorRoutes, { prefix: "/api/v1/tutors" });
   await app.register(requestRoutes, { prefix: "/api/v1/requests" });
   await app.register(coursesRoutes, { prefix: "/api/v1/courses" });
+  await app.register(sessionRoutes, { prefix: "/api/v1/sessions"});
 
   return app;
 }
