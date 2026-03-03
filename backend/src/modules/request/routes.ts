@@ -109,6 +109,29 @@ async function ensureTutorExists(app: FastifyInstance, tutorId: number) {
   return Boolean(tutor);
 }
 
+async function hasActiveDuplicateTutorAssignment(
+  app: FastifyInstance,
+  params: {
+    userId: number;
+    courseId: number;
+    requestedTutorId: number;
+    excludeRequestId?: number;
+  }
+) {
+  const existing = await app.prisma.tutoringRequest.findFirst({
+    where: {
+      userId: params.userId,
+      courseId: params.courseId,
+      requestedTutorId: params.requestedTutorId,
+      status: { in: ["pending_tutor", "approved"] },
+      ...(params.excludeRequestId ? { id: { not: params.excludeRequestId } } : {}),
+    },
+    select: { id: true },
+  });
+
+  return Boolean(existing);
+}
+
 async function hasDeclineReasonColumn(app: FastifyInstance) {
   const rows = (await app.prisma.$queryRawUnsafe(
     `
@@ -289,7 +312,13 @@ export async function requestRoutes(app: FastifyInstance) {
     }
     const existing = await app.prisma.tutoringRequest.findUnique({
       where: { id: parsedParams.data.id },
-      select: { id: true, status: true, requestedTutorId: true },
+      select: {
+        id: true,
+        status: true,
+        requestedTutorId: true,
+        userId: true,
+        courseId: true,
+      },
     });
     if (!existing) {
       return reply.code(404).send({ message: "Tutoring request not found" });
@@ -300,6 +329,19 @@ export async function requestRoutes(app: FastifyInstance) {
       });
     }
     if (parsedBody.data.accepted) {
+      const hasDuplicate = await hasActiveDuplicateTutorAssignment(app, {
+        userId: existing.userId,
+        courseId: existing.courseId,
+        requestedTutorId: tutorId,
+        excludeRequestId: existing.id,
+      });
+      if (hasDuplicate) {
+        return reply.code(409).send({
+          message:
+            "Student is already assigned to this tutor for this course",
+        });
+      }
+
       const updatedRequest = await app.prisma.tutoringRequest.update({
         where: { id: parsedParams.data.id },
         data: { status: "approved" },
@@ -336,7 +378,7 @@ export async function requestRoutes(app: FastifyInstance) {
     }
     const existing = await app.prisma.tutoringRequest.findUnique({
       where: { id: parsedParams.data.id },
-      select: { id: true, status: true },
+      select: { id: true, status: true, userId: true, courseId: true },
     });
     if (!existing) {
       return reply.code(404).send({ message: "Tutoring request not found" });
@@ -352,6 +394,18 @@ export async function requestRoutes(app: FastifyInstance) {
     if (!tutorExists) {
       return reply.code(404).send({ message: "Requested tutor not found" });
     }
+    const hasDuplicate = await hasActiveDuplicateTutorAssignment(app, {
+      userId: existing.userId,
+      courseId: existing.courseId,
+      requestedTutorId: parsedBody.data.requestedTutorId,
+      excludeRequestId: existing.id,
+    });
+    if (hasDuplicate) {
+      return reply.code(409).send({
+        message: "Student is already assigned to this tutor for this course",
+      });
+    }
+
     const updatedRequest = await app.prisma.tutoringRequest.update({
       where: { id: parsedParams.data.id },
       data: {
@@ -421,7 +475,13 @@ export async function requestRoutes(app: FastifyInstance) {
 
     const existing = await app.prisma.tutoringRequest.findUnique({
       where: { id: parsedParams.data.id },
-      select: { id: true },
+      select: {
+        id: true,
+        status: true,
+        userId: true,
+        courseId: true,
+        requestedTutorId: true,
+      },
     });
 
     if (!existing) {
@@ -442,6 +502,31 @@ export async function requestRoutes(app: FastifyInstance) {
       const tutorExists = await ensureTutorExists(app, parsedBody.data.requestedTutorId);
       if (!tutorExists) {
         return reply.code(404).send({ message: "Requested tutor not found" });
+      }
+    }
+
+    const nextCourseId = parsedBody.data.courseId ?? existing.courseId;
+    const nextTutorId =
+      parsedBody.data.requestedTutorId !== undefined
+        ? parsedBody.data.requestedTutorId
+        : existing.requestedTutorId;
+    const nextStatus = (parsedBody.data.status ?? existing.status) as ReqStatus;
+    const shouldCheckDuplicate =
+      nextTutorId !== null &&
+      (nextStatus === "pending_tutor" || nextStatus === "approved");
+
+    if (shouldCheckDuplicate) {
+      const hasDuplicate = await hasActiveDuplicateTutorAssignment(app, {
+        userId: existing.userId,
+        courseId: nextCourseId,
+        requestedTutorId: nextTutorId,
+        excludeRequestId: existing.id,
+      });
+
+      if (hasDuplicate) {
+        return reply.code(409).send({
+          message: "Student is already assigned to this tutor for this course",
+        });
       }
     }
 
